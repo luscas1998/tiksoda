@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · TTS</title>
+<link rel="stylesheet" href="/shared/temas.css">
+<script src="/shared/tema.js"></script>
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; width: 100%; height: 100%; }
+  body { font-family: var(--ov-font); color: var(--ov-text); display: grid; align-items: end; justify-items: center; padding: 14px; box-sizing: border-box; }
+  .fala {
+    display: flex; align-items: center; gap: 14px; max-width: 100%;
+    background: var(--ov-bg); border: var(--ov-border-w) solid var(--ov-border); border-radius: var(--ov-radius);
+    box-shadow: var(--ov-shadow); padding: 12px 18px; animation: entra 300ms ease-out both;
+  }
+  .fala.sai { animation: sai 300ms ease-in both; }
+  .avatar { width: 56px; height: 56px; border-radius: 50%; flex: none; background: #444 center/cover; display: grid; place-items: center; font-weight: 800; font-size: 24px; color: #fff; position: relative; }
+  .avatar::after { content: "🔊"; position: absolute; right: -6px; bottom: -4px; font-size: 20px; animation: fala 600ms ease-in-out infinite alternate; }
+  .texto { min-width: 0; text-shadow: var(--ov-text-shadow); }
+  .nome { font-weight: 800; font-size: 18px; color: var(--ov-accent); }
+  .msg { font-size: 24px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+  @keyframes entra { from { opacity: 0; transform: translateY(20px) scale(.95); } to { opacity: 1; transform: none; } }
+  @keyframes sai { to { opacity: 0; transform: translateY(10px); } }
+  @keyframes fala { from { transform: scale(1); } to { transform: scale(1.2); } }
+  #ativar {
+    display: none; position: fixed; inset: 0; place-items: center; cursor: pointer;
+    background: rgba(0,0,0,.55); color: #fff; font: 600 20px "Segoe UI", system-ui, sans-serif; text-align: center;
+  }
+  #ativar.on { display: grid; }
+</style>
+</head>
+<body>
+<div id="ativar">🔊 Clique aqui uma vez para liberar o som<br><small>(só aparece no navegador; no LIVE Studio não precisa)</small></div>
+<script type="module">
+  import { connectLive, escapeHtml, initials } from '/shared/live-client.js';
+
+  // Lê os comentários do TTS, um de cada vez. Configure na aba TTS do painel.
+  // Opções: ?legenda=0 (só a voz, sem o balão) · ?volume=80 · ?tema=neon
+  //         ?previa=1 (painel: mostra o balão sem falar)
+  const params = new URLSearchParams(location.search);
+  const LEGENDA = params.get('legenda') !== '0';
+  const PREVIA = params.get('previa') === '1';
+  const VOLUME = Math.min(100, Math.max(0, Number(params.get('volume') ?? 100))) / 100;
+  const MAX_MS = 30000;
+
+  const fila = [];
+  let atual = null; // { parar }
+  const ativar = document.getElementById('ativar');
+  ativar.onclick = () => ativar.classList.remove('on');
+
+  function balao(item) {
+    if (!LEGENDA) return null;
+    const u = item.user;
+    const el = document.createElement('div');
+    el.className = 'fala';
+    const avatar = u?.avatar
+      ? `<div class="avatar" style="background-image:url('${escapeHtml(u.avatar)}')"></div>`
+      : `<div class="avatar">${escapeHtml(u ? initials(u.nickname) : '🔊')}</div>`;
+    el.innerHTML = `${avatar}<div class="texto">${u ? `<div class="nome">${escapeHtml(u.nickname)}</div>` : ''}<div class="msg">${escapeHtml(item.text)}</div></div>`;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function vozDoNavegador(item, fim) {
+    if (!('speechSynthesis' in window)) return setTimeout(fim, 2500);
+    const u = new SpeechSynthesisUtterance(item.speak);
+    const vozes = speechSynthesis.getVoices();
+    u.voice = vozes.find((v) => v.name === item.voice) || vozes.find((v) => v.lang === 'pt-BR') || vozes.find((v) => v.lang?.startsWith('pt')) || null;
+    u.lang = u.voice?.lang || 'pt-BR';
+    u.rate = Math.min(3, Math.max(0.3, 1 + item.rate / 10));
+    u.volume = (item.volume / 100) * VOLUME;
+    u.onend = fim;
+    u.onerror = fim;
+    speechSynthesis.speak(u);
+    return { parar: () => speechSynthesis.cancel() };
+  }
+
+  function tocar(item) {
+    const el = balao(item);
+    let acabou = false;
+    let controle = null;
+    const inicio = Date.now();
+    const MIN_MS = 2500; // o balão fica pelo menos isso na tela, mesmo se a voz falhar
+    const fim = () => {
+      if (acabou) return;
+      const falta = MIN_MS - (Date.now() - inicio);
+      if (falta > 0 && el) { setTimeout(fim, falta); return; }
+      acabou = true;
+      atual = null;
+      if (el) { el.classList.add('sai'); setTimeout(() => el.remove(), 300); }
+      setTimeout(proximo, 350);
+    };
+    setTimeout(fim, MAX_MS);
+
+    if (PREVIA) {
+      setTimeout(fim, Math.min(8000, 1500 + item.text.length * 60));
+    } else if (item.url) {
+      const a = new Audio(item.url);
+      a.volume = (item.volume / 100) * VOLUME;
+      a.onended = fim;
+      a.onerror = fim;
+      a.play().catch(() => { ativar.classList.add('on'); a.muted = true; a.play().catch(fim); });
+      controle = { parar: () => { a.pause(); fim(); } };
+    } else {
+      controle = vozDoNavegador(item, fim);
+    }
+    atual = { parar: () => { controle?.parar?.(); fimAgora(); } };
+    function fimAgora() {
+      if (acabou) return;
+      acabou = true;
+      atual = null;
+      if (el) { el.classList.add('sai'); setTimeout(() => el.remove(), 300); }
+      setTimeout(proximo, 350);
+    }
+  }
+
+  function proximo() {
+    if (atual) return;
+    const item = fila.shift();
+    if (item) tocar(item);
+  }
+
+  connectLive({
+    onTts: (item) => {
+      if (fila.length > 50) return;
+      fila.push(item);
+      proximo();
+    },
+    onTtsControl: (action) => {
+      if (action === 'limpar') fila.length = 0;
+      if (action === 'pular' || action === 'limpar') atual?.parar();
+    },
+  });
+</script>
+</body>
+</html>

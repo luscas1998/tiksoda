@@ -8,16 +8,18 @@
 - [x] Ações: presente → áudio/vídeo, meta de likes → áudio/vídeo, modo cortar e repetir
 - [x] Meta de presente com link próprio por meta
 - [x] Ranking mensal de coins e likes, com histórico
+- [x] Temas por overlay (Escuro, Neon, Claro, Minimalista) com prévia
+- [x] Metas de likes, seguidores, shares e coins em 5 modelos (presente, barra, círculo, número, copo)
+- [x] Coroa no top 1 dos rankings
+- [x] TTS com aba própria (comando, filtros, voz do Windows)
+- [x] Roleta por comando no chat, por presente e pelo painel
+- [x] Overlay de chat
 
 ## Próximos
 
-- [ ] **Temas** para cada overlay, escolhidos no painel com prévia
-- [ ] **Barra de meta** (coins, likes ou follows) enchendo ao vivo
-- [ ] **Contador** de follows e shares, último seguidor
-- [ ] **Top 1 em destaque** com coroa
-- [ ] **Leitura de comentários em voz alta** (voz do Windows)
-- [ ] **Comandos no chat** (ex.: `!som`) com limite de tempo
-- [ ] **Roda da sorte e sorteios**
+- [ ] **Comandos no chat** que tocam mídia (ex.: `!risada`) com limite de tempo
+- [ ] **Sorteio de pessoas** (quem comentar uma palavra entra)
+- [ ] **Contador** simples de follows e shares, último seguidor
 - [ ] **Boas-vindas** para quem entra na live
 
 ## Depois

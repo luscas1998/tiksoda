@@ -4,29 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TikSoda · Alertas</title>
+<link rel="stylesheet" href="/shared/temas.css">
+<script src="/shared/tema.js"></script>
 <style>
   html, body { margin: 0; background: transparent; overflow: hidden; }
   body {
-    font-family: "Segoe UI", system-ui, sans-serif; color: #fff;
+    font-family: var(--ov-font); color: var(--ov-text);
     height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
   }
   .alerta {
     display: flex; align-items: center; gap: 18px; max-width: 100%;
-    background: linear-gradient(135deg, rgba(20,20,32,.9), rgba(40,20,45,.9));
+    background: var(--ov-bg-strong);
     border: 3px solid var(--c); border-radius: 24px; padding: 16px 24px;
     box-shadow: 0 0 30px var(--c), 0 10px 30px rgba(0,0,0,.4);
     animation: entra 500ms cubic-bezier(.2, 1.4, .4, 1) both;
   }
   .alerta.sai { animation: sai 400ms ease-in both; }
+  html[data-tema="minimalista"] .alerta { border-color: transparent; box-shadow: none; }
   .alerta.gift { --c: #ffc93c; }
   .alerta.follow { --c: #ff4f8b; }
   .alerta.share { --c: #25f4ee; }
   .avatar {
     width: 84px; height: 84px; border-radius: 50%; flex: none; border: 3px solid var(--c);
-    background: #444 center/cover; display: grid; place-items: center; font-size: 34px; font-weight: 800;
+    background: #444 center/cover; display: grid; place-items: center; font-size: 34px; font-weight: 800; color: #fff;
   }
   .texto { min-width: 0; }
-  .nome { font-size: 30px; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0,0,0,.6); }
+  .nome { font-size: 30px; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: var(--ov-text-shadow); }
   .acao { font-size: 22px; opacity: .95; margin-top: 4px; }
   .acao b { color: var(--c); }
   .gift-img { width: 92px; height: 92px; flex: none; object-fit: contain; animation: pula 900ms ease-in-out infinite alternate; }

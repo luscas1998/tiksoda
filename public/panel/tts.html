@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · TTS</title>
+<link rel="stylesheet" href="panel.css">
+<link rel="stylesheet" href="acoes.css">
+<link rel="stylesheet" href="tts.css">
+</head>
+<body>
+<header>
+  <h1>TikSoda <span class="badge">v0.5</span></h1>
+  <nav class="tabs"><a href="/painel/">Live e overlays</a><a href="/painel/acoes.html">Ações</a><a href="/painel/metas.html">Metas</a><a href="/painel/roleta.html">Roleta</a><a href="/painel/tts.html" class="active">TTS</a></nav>
+  <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
+</header>
+
+<main class="acoes">
+  <section class="card">
+    <div class="feed-head">
+      <h2>TTS: ler comentários em voz alta</h2>
+      <label class="check big"><span class="switch"><input type="checkbox" id="enabled"><span></span></span> Ligado</label>
+    </div>
+    <form id="form" class="form">
+      <div class="field">
+        <span class="label">O que ler</span>
+        <div class="seg">
+          <label><input type="radio" name="mode" value="comando" checked> Só quem usar o comando</label>
+          <label><input type="radio" name="mode" value="todos"> Todos os comentários</label>
+        </div>
+        <label id="command-field">Comando<input id="command" placeholder="!falar" maxlength="30"></label>
+        <p class="hint" id="command-hint"></p>
+      </div>
+
+      <div class="field">
+        <span class="label">Quem pode</span>
+        <div class="seg">
+          <label><input type="radio" name="who" value="todos" checked> Qualquer pessoa</label>
+          <label><input type="radio" name="who" value="presente"> Só quem já mandou presente nesta live</label>
+        </div>
+        <label id="mincoins-field">Mínimo de coins já enviados nesta live<input id="min-coins" type="number" min="1" value="1"></label>
+      </div>
+
+      <label>Como falar<input id="template" maxlength="120" placeholder="{nome} disse: {mensagem}"></label>
+      <p class="hint">Use <code>{nome}</code>, <code>{usuario}</code> e <code>{mensagem}</code>. Só <code>{mensagem}</code> lê o texto puro.</p>
+
+      <div class="grid3">
+        <label>Máx. de letras<input id="max-chars" type="number" min="10" max="300"></label>
+        <label>Espera por pessoa (s)<input id="cooldown" type="number" min="0" max="3600"></label>
+        <label>Máx. na fila<input id="max-queue" type="number" min="1" max="50"></label>
+      </div>
+
+      <div class="field">
+        <span class="label">Filtros</span>
+        <label class="check"><input type="checkbox" id="filter-bad"> Pular comentários com palavrão</label>
+        <label class="check"><input type="checkbox" id="ignore-links"> Pular comentários com link</label>
+        <label>Palavras bloqueadas (separe por vírgula)<textarea id="blocked-words" rows="2" placeholder="ex.: spam, golpe"></textarea></label>
+        <label>Usuários que nunca são lidos (@, separe por vírgula)<textarea id="ignored-users" rows="2" placeholder="ex.: algum_bot"></textarea></label>
+      </div>
+
+      <div class="field">
+        <span class="label">Voz</span>
+        <div class="seg">
+          <label><input type="radio" name="engine" value="windows" checked> Voz do Windows (recomendado)</label>
+          <label><input type="radio" name="engine" value="navegador"> Voz do navegador</label>
+        </div>
+        <div class="row">
+          <select id="voice"></select>
+          <button type="button" class="secondary small" id="reload-voices" title="Recarregar vozes">⟳</button>
+        </div>
+        <p class="hint" id="voice-hint"></p>
+        <div class="grid3">
+          <label>Velocidade <b id="rate-val"></b><input id="rate" type="range" min="-10" max="10" step="1"></label>
+          <label>Volume <b id="volume-val"></b><input id="volume" type="range" min="0" max="100" step="5"></label>
+        </div>
+      </div>
+
+      <div class="row">
+        <button type="submit">Salvar</button>
+        <span id="form-msg" class="msg"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Testar</h2>
+    <form id="test" class="row">
+      <input id="test-text" placeholder="Digite algo pra ouvir…" maxlength="300">
+      <button type="submit">Falar</button>
+    </form>
+    <div class="row wrap" style="margin-top:10px">
+      <button class="secondary small" id="skip">⏭ Pular o atual</button>
+      <button class="secondary small" id="clear">🗑 Limpar fila</button>
+    </div>
+    <p class="hint">O som sai no overlay de TTS. Deixe ele aberto (no LIVE Studio ou numa aba) pra ouvir.</p>
+    <div class="ov-mini">
+      <div class="row link-row"><input id="link" readonly><button class="secondary small" data-copy>Copiar</button></div>
+      <div class="theme-row">Tema <span id="theme-slot"></span></div>
+      <div class="preview tts-preview"><iframe id="preview" tabindex="-1" title="Prévia"></iframe></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Últimos comentários</h2>
+    <ul id="log" class="log"><li class="empty-msg">Nada ainda.</li></ul>
+  </section>
+</main>
+
+<script type="module" src="tts.js"></script>
+</body>
+</html>

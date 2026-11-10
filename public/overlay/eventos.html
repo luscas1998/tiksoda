@@ -4,22 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TikSoda · Feed de eventos</title>
+<link rel="stylesheet" href="/shared/temas.css">
+<script src="/shared/tema.js"></script>
 <style>
   /* Fundo transparente para ficar por cima da live. */
   html, body { margin: 0; background: transparent; overflow: hidden; }
   body {
-    font-family: "Segoe UI", system-ui, sans-serif;
+    font-family: var(--ov-font);
     height: 100vh; display: flex; flex-direction: column; justify-content: flex-end;
     padding: 12px; box-sizing: border-box; gap: 8px;
   }
   .item {
     display: flex; align-items: center; gap: 10px;
-    background: rgba(15, 15, 25, 0.72); color: #fff;
-    border-radius: 14px; padding: 8px 12px;
+    background: var(--ov-bg); color: var(--ov-text);
+    border-radius: var(--ov-radius); box-shadow: var(--ov-shadow);
+    border: var(--ov-border-w) solid var(--ov-border); padding: 8px 12px;
     font-size: 18px; line-height: 1.25;
     border-left: 4px solid var(--c, #8b8b9a);
     animation: entra 260ms ease-out;
-    text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    text-shadow: var(--ov-text-shadow);
   }
   .item.gift { --c: #ffc93c; }
   .item.follow { --c: #ff4f8b; }

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Roleta</title>
+<link rel="stylesheet" href="/shared/temas.css">
+<script src="/shared/tema.js"></script>
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; width: 100%; height: 100%; }
+  body { font-family: var(--ov-font); color: var(--ov-text); display: grid; place-items: center; }
+  .roleta {
+    display: grid; justify-items: center; gap: 10px; padding: 14px; position: relative;
+    background: var(--ov-bg-soft); border-radius: var(--ov-radius); box-shadow: var(--ov-soft-shadow);
+    border: var(--ov-border-w) solid var(--ov-border);
+    transition: opacity 400ms, transform 400ms;
+  }
+  .roleta.escondida { opacity: 0; transform: scale(.8); }
+  h1 { margin: 0; font-size: 28px; font-weight: 900; text-shadow: var(--ov-soft-text-shadow); text-align: center; max-width: 90vw; }
+  h1:empty { display: none; }
+  .quem { font-size: 17px; font-weight: 600; text-shadow: var(--ov-soft-text-shadow); min-height: 22px; }
+  .roda { position: relative; width: var(--tam); height: var(--tam); }
+  canvas { width: 100%; height: 100%; border-radius: 50%; box-shadow: 0 0 0 6px rgba(255,255,255,.9), 0 0 0 10px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.45); }
+  .seta {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 0; height: 0; z-index: 2;
+    border-left: 18px solid transparent; border-right: 18px solid transparent; border-top: 34px solid #fff;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
+  }
+  .seta.bate { animation: bate 140ms ease-in-out infinite alternate; }
+  .miolo {
+    position: absolute; inset: 50% auto auto 50%; width: 22%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, #ddd 45%, #999); box-shadow: 0 2px 8px rgba(0,0,0,.5);
+    display: grid; place-items: center; font-size: calc(var(--tam) * .08);
+  }
+  .resultado {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; text-align: center;
+    background: var(--cor, #ff4f8b); color: #fff; padding: 14px 26px; border-radius: 20px; font-weight: 900; font-size: 34px;
+    box-shadow: 0 0 0 4px #fff, 0 10px 30px rgba(0,0,0,.5); text-shadow: 0 2px 4px rgba(0,0,0,.5);
+    max-width: 90%; animation: resultado 500ms cubic-bezier(.2,1.5,.4,1) both;
+  }
+  .resultado small { display: block; font-size: 15px; font-weight: 700; opacity: .9; }
+  @keyframes bate { from { transform: translateX(-50%) rotate(-8deg); } to { transform: translateX(-50%) rotate(8deg); } }
+  @keyframes resultado { from { opacity: 0; transform: translate(-50%, -50%) scale(.3); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+</style>
+</head>
+<body>
+<div class="roleta escondida" id="roleta">
+  <h1 id="titulo"></h1>
+  <div class="roda" id="roda">
+    <div class="seta" id="seta"></div>
+    <canvas id="canvas" width="800" height="800"></canvas>
+    <div class="miolo">🎡</div>
+  </div>
+  <div class="quem" id="quem"></div>
+</div>
+<script type="module">
+  import { connectLive, escapeHtml } from '/shared/live-client.js';
+
+  // Link: /overlay/roleta/<id>. Opções: ?tamanho=420 (px da roda) · ?tema=neon · ?sempre=1 (não esconde quando parada)
+  const id = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop());
+  const params = new URLSearchParams(location.search);
+  const PREVIA = params.get('previa') === '1';
+  const TAM = Math.min(900, Math.max(160, Number(params.get('tamanho')) || 420));
+  document.body.style.setProperty('--tam', `${TAM}px`);
+  const $ = (x) => document.getElementById(x);
+  const canvas = $('canvas');
+  const ctx = canvas.getContext('2d');
+
+  let wheel = null;
+  let angle = 0;          // rotação atual em graus
+  let ativos = 0;         // giros acontecendo agora
+  let assinatura = '';
+
+  function desenhar() {
+    const opts = wheel?.options || [];
+    const n = opts.length || 1;
+    const R = canvas.width / 2;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const fatia = (Math.PI * 2) / n;
+    opts.forEach((o, i) => {
+      const a0 = -Math.PI / 2 + i * fatia;
+      ctx.beginPath();
+      ctx.moveTo(R, R);
+      ctx.arc(R, R, R, a0, a0 + fatia);
+      ctx.closePath();
+      ctx.fillStyle = o.color;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.85)';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      // texto ao longo do raio
+      ctx.save();
+      ctx.translate(R, R);
+      ctx.rotate(a0 + fatia / 2);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      const size = Math.max(22, Math.min(48, 380 / Math.max(6, o.label.length) + (n <= 6 ? 10 : 0)));
+      ctx.font = `800 ${size}px "Segoe UI", system-ui, sans-serif`;
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(0,0,0,.6)';
+      ctx.shadowBlur = 6;
+      let txt = o.label;
+      while (ctx.measureText(txt).width > R * 0.72 && txt.length > 3) txt = txt.slice(0, -2) + '…';
+      ctx.fillText(txt, R - 34, 0);
+      ctx.restore();
+    });
+  }
+
+  function mostrar(sim) {
+    const esconder = wheel && wheel.hideIdle && params.get('sempre') !== '1' && !PREVIA;
+    $('roleta').classList.toggle('escondida', !wheel || !wheel.enabled || (esconder && !sim));
+  }
+
+  function setWheel(w) {
+    wheel = w;
+    if (!w) return mostrar(false);
+    $('titulo').textContent = w.title || '';
+    const sig = JSON.stringify(w.options.map((o) => [o.label, o.color]));
+    if (sig !== assinatura && !ativos) { assinatura = sig; desenhar(); }
+    mostrar(ativos > 0);
+  }
+
+  function girar(spin) {
+    if (!wheel) return;
+    ativos++;
+    mostrar(true);
+    const n = wheel.options.length;
+    const fatia = 360 / n;
+    const alvo = (spin.index + 0.5) * fatia + (Math.random() - 0.5) * fatia * 0.6;
+    const voltas = 4 + Math.round(spin.spinMs / 1500);
+    const atual = ((angle % 360) + 360) % 360;
+    const fim = ((360 - alvo) % 360 + 360) % 360;
+    angle += voltas * 360 + ((fim - atual + 360) % 360);
+    canvas.style.transition = `transform ${spin.spinMs}ms cubic-bezier(.12,.6,.1,1)`;
+    canvas.style.transform = `rotate(${angle}deg)`;
+    $('seta').classList.add('bate');
+    $('quem').innerHTML = spin.user ? `girada por <b>${escapeHtml(spin.user.nickname)}</b>` : '';
+    setTimeout(() => $('seta').classList.remove('bate'), spin.spinMs * 0.75);
+
+    setTimeout(() => {
+      const r = document.createElement('div');
+      r.className = 'resultado';
+      r.style.setProperty('--cor', spin.color);
+      r.innerHTML = `${escapeHtml(spin.label)}${spin.user ? `<small>${escapeHtml(spin.user.nickname)}</small>` : ''}`;
+      $('roda').appendChild(r);
+      setTimeout(() => {
+        r.remove();
+        ativos = Math.max(0, ativos - 1);
+        if (!ativos) { $('quem').textContent = ''; mostrar(false); setWheel(wheel); }
+      }, spin.showMs);
+    }, spin.spinMs);
+  }
+
+  // Na prévia do painel, a roleta gira sozinha de vez em quando.
+  function demo() {
+    if (!wheel || ativos) return;
+    const index = Math.floor(Math.random() * wheel.options.length);
+    const o = wheel.options[index];
+    girar({ index, label: o.label, color: o.color, user: null, spinMs: 3000, showMs: 1500 });
+  }
+  if (PREVIA) setInterval(demo, 7000);
+
+  const find = (list) => (list || []).find((w) => w.id === id) || null;
+  connectLive({
+    onHello: ({ wheels }) => setWheel(find(wheels)),
+    onWheels: (list) => setWheel(find(list)),
+    onWheelSpin: (spin) => {
+      if (spin.wheelId !== id) return;
+      setTimeout(() => girar(spin), Math.max(0, spin.startAt - Date.now()));
+    },
+  });
+</script>
+</body>
+</html>

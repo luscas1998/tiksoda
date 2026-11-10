@@ -4,32 +4,42 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TikSoda · Ranking</title>
+<link rel="stylesheet" href="/shared/temas.css">
+<script src="/shared/tema.js"></script>
 <style>
   html, body { margin: 0; background: transparent; overflow: hidden; }
-  body { font-family: "Segoe UI", system-ui, sans-serif; color: #fff; padding: 12px; box-sizing: border-box; }
+  body { font-family: var(--ov-font); color: var(--ov-text); padding: 12px; box-sizing: border-box; }
   .box {
-    background: rgba(15, 15, 25, 0.75); border-radius: 18px; padding: 14px 14px 10px;
-    box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    background: var(--ov-bg); border-radius: var(--ov-radius); padding: 14px 14px 10px;
+    box-shadow: var(--ov-shadow); border: var(--ov-border-w) solid var(--ov-border);
   }
   .box.sem-fundo { background: transparent; box-shadow: none; padding: 0; }
   h1 {
     margin: 0 0 10px; font-size: 20px; display: flex; align-items: center; gap: 8px;
-    text-shadow: 0 1px 3px rgba(0,0,0,.6);
+    text-shadow: var(--ov-text-shadow);
   }
   h1 .icon { font-size: 22px; }
   ol { list-style: none; margin: 0; padding: 0; position: relative; }
   li {
     display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 10px;
-    border-radius: 12px; background: rgba(255,255,255,.06); margin-bottom: 6px;
+    border-radius: calc(var(--ov-radius) * .7); background: var(--ov-item); margin-bottom: 6px;
     transition: transform 400ms ease, background 300ms;
-    text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    text-shadow: var(--ov-text-shadow);
   }
-  li.flash { background: rgba(255,255,255,.22); }
+  li.flash { background: var(--ov-item-strong); }
   .pos { width: 26px; text-align: center; font-weight: 800; font-size: 17px; flex: none; }
-  li:nth-child(1) .pos { color: #ffd23f; }
+  li:nth-child(1) .pos { color: var(--ov-gold); }
   li:nth-child(2) .pos { color: #d6dbe4; }
   li:nth-child(3) .pos { color: #e3a46f; }
-  .avatar { width: 34px; height: 34px; border-radius: 50%; flex: none; background: #444 center/cover; display: grid; place-items: center; font-weight: 700; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; flex: none; background: #444 center/cover; display: grid; place-items: center; font-weight: 700; color: #fff; position: relative; }
+  /* Coroa no primeiro lugar (?coroa=0 desliga) */
+  .coroa li.top1 { height: 56px; background: linear-gradient(90deg, rgba(255, 210, 63, .28), var(--ov-item)); box-shadow: inset 0 0 0 2px rgba(255, 210, 63, .55); }
+  .coroa li.top1 .avatar { width: 42px; height: 42px; box-shadow: 0 0 0 2px var(--ov-gold), 0 0 14px rgba(255, 210, 63, .8); }
+  .coroa li.top1 .avatar::after { content: "👑"; position: absolute; top: -17px; left: 50%; transform: translateX(-50%) rotate(-12deg); font-size: 20px; text-shadow: none; animation: coroa 1.6s ease-in-out infinite alternate; }
+  .coroa li.top1 .name { font-size: 17px; font-weight: 800; }
+  .coroa li.top1 .pos { font-size: 0; }
+  .coroa li.top1 .pos::before { content: "1"; font-size: 20px; }
+  @keyframes coroa { from { transform: translateX(-50%) rotate(-12deg) translateY(0); } to { transform: translateX(-50%) rotate(-4deg) translateY(-2px); } }
   .name { flex: 1; min-width: 0; font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .value { font-weight: 800; font-size: 16px; flex: none; color: var(--accent); }
   .vazio { opacity: .75; font-size: 15px; padding: 6px 2px; }
@@ -59,6 +69,7 @@
   document.getElementById('icon').textContent = DEFAULTS.icon;
   document.documentElement.style.setProperty('--accent', params.get('cor') ? `#${params.get('cor').replace('#', '')}` : DEFAULTS.accent);
   if (params.get('fundo') === '0') document.getElementById('box').classList.add('sem-fundo');
+  if (params.get('coroa') !== '0') document.getElementById('box').classList.add('coroa');
 
   const list = document.getElementById('list');
   let last = {};
@@ -77,7 +88,7 @@
       const avatar = r.avatar
         ? `<div class="avatar" style="background-image:url('${escapeHtml(r.avatar)}')"></div>`
         : `<div class="avatar">${escapeHtml(initials(r.nickname))}</div>`;
-      return `<li class="${changed ? 'flash' : ''}"><span class="pos">${i + 1}</span>${avatar}
+      return `<li class="${changed ? 'flash' : ''} ${i === 0 ? 'top1' : ''}"><span class="pos">${i + 1}</span>${avatar}
         <span class="name">${escapeHtml(r.nickname)}</span><span class="value">${formatNumber(r.value)}</span></li>`;
     }).join('');
     last = now;

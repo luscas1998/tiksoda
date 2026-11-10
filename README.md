@@ -31,7 +31,14 @@ Cada overlay tem o seu próprio link, mostrado no painel com botão de copiar.
 | Áudio e vídeo das ações | `/overlay/midia` | pronto |
 | Ranking mensal de likes | `/overlay/ranking-mensal-likes` | pronto |
 | Ranking mensal de coins | `/overlay/ranking-mensal-coins` | pronto |
-| Meta de presente | `/overlay/meta/<id>` (um link por meta) | pronto |
+| Metas (presente, likes, seguidores, shares, coins) | `/overlay/meta/<id>` (um link por meta) | pronto |
+| Chat | `/overlay/chat` | pronto |
+| Roleta | `/overlay/roleta/<id>` (um link por roleta) | pronto |
+| TTS (comentários em voz alta) | `/overlay/tts` | pronto |
+
+### Temas
+
+Feed, alertas, rankings, chat, TTS, metas e roleta têm 4 temas: **Escuro** (padrão), **Neon**, **Claro** e **Minimalista**. Escolha no seletor ao lado de cada link no painel; a prévia muda na hora e o tema vai no próprio link (`?tema=neon`).
 
 ### Opções do feed de eventos
 
@@ -57,6 +64,7 @@ Os alertas entram numa fila: um de cada vez, sem atropelar. Follow repetido da m
 - `?titulo=Top%20da%20live` muda o título
 - `?fundo=0` tira o fundo escuro
 - `?cor=ff4f8b` cor dos números (sem o #)
+- `?coroa=0` tira a coroa e o destaque do primeiro lugar
 
 Os rankings contam a live atual. Zeram sozinhos quando você conecta numa live nova e ficam salvos em `data/session.json`, então fechar e abrir o app no meio da live não perde nada. No painel tem o botão **Zerar rankings**.
 
@@ -68,14 +76,43 @@ Os rankings contam a live atual. Zeram sozinhos quando você conecta numa live n
 
 Coloque este overlay em tela cheia no LIVE Studio. No navegador comum o som pode precisar de um clique pra liberar; no LIVE Studio e no OBS não precisa.
 
-## Metas de presente (aba Metas do painel)
+### Opções do chat
 
-Escolha um presente e quantos quer receber. O overlay mostra o presente pulsando com a contagem (ex.: Rosa 3/10), uma barra e textos em cima e embaixo, que você personaliza com `{atual}`, `{meta}`, `{faltam}`, `{presente}` e `{vezes}`. A contagem sobe na hora, até durante combos.
+- `?max=10` quantas mensagens aparecem · `?tempo=30` cada uma some depois de 30 s
+- `?tamanho=22` tamanho da letra · `?avatar=0` sem foto
+- `?comandos=0` esconde mensagens que começam com `!` · `?presentes=1` mostra presentes no meio do chat
 
-- Cada meta tem o seu link: `/overlay/meta/<id>`, mostrado na aba com prévia.
-- Ao bater: comemora com confete e escolhe entre recomeçar, ficar "concluída" ou sumir. Pode tocar um áudio ou vídeo da biblioteca.
+## Metas (aba Metas do painel)
+
+Meta de um **presente** (ex.: Rosa 3/10), de **likes**, **seguidores**, **shares** ou **coins** da live. Cada uma escolhe um modelo: presente pulsando, barra, círculo, número grande ou copo enchendo. A prévia no formulário mostra o modelo antes de criar.
+
+- Textos em cima e embaixo com `{atual}`, `{meta}`, `{faltam}`, `{porcento}`, `{presente}` e `{vezes}`.
+- Cada meta tem o seu link: `/overlay/meta/<id>`, com prévia e seletor de tema.
+- Ao bater: comemora com confete e escolhe entre recomeçar, **aumentar a meta** (ex.: +1000 likes), ficar "concluída" ou sumir. Pode tocar um áudio ou vídeo da biblioteca.
+- Pode zerar sozinha quando você conecta numa live nova (padrão nas metas de likes, seguidores, shares e coins).
 - Mostra quem mais ajudou (👑), botões de +1/−1, zerar, editar e ligar/desligar.
-- Opções no link: `?barra=0`, `?cor=ff4f8b`, `?tamanho=150`.
+- Opções no link: `?cor=ff4f8b`, `?tamanho=150`, `?barra=0` (modelo presente).
+
+## Roleta (aba Roleta do painel)
+
+Você cadastra as opções (com cor, peso e, se quiser, um áudio/vídeo que toca quando cair nela). A roleta gira:
+
+- pelo botão **Girar** do painel;
+- quando alguém comenta o comando (padrão `!roleta`), com espera entre giros e opção de liberar só pra quem já mandou presente;
+- quando chega o presente escolhido (um giro por envio ou um por presente).
+
+Os giros entram numa fila. Cada roleta tem o seu link `/overlay/roleta/<id>` e por padrão some da tela quando está parada (`?sempre=1` deixa sempre visível, `?tamanho=420` muda o tamanho).
+
+## TTS (aba TTS do painel)
+
+Lê comentários em voz alta no overlay `/overlay/tts`, com um balão mostrando quem escreveu.
+
+- Lê só quem usar o comando (padrão `!falar`) ou todos os comentários.
+- Pode liberar só pra quem já mandou presente na live.
+- Texto falado configurável (`{nome} disse: {mensagem}`), limite de letras, espera por pessoa e tamanho da fila.
+- Filtros: palavrões, links, palavras e usuários bloqueados.
+- Voz do Windows (recomendado: o app gera o áudio e funciona em qualquer programa de live) ou voz do navegador. Escolha a voz, a velocidade e o volume, e teste na própria aba. Botões de pular e limpar a fila.
+- Pra ter voz em português no Windows: Configurações → Hora e idioma → Fala → Adicionar vozes.
 
 ## Ranking mensal
 
@@ -107,7 +144,7 @@ O app também continua aprendendo sozinho: todo presente que chega numa live con
 
 ## Testar sem estar ao vivo
 
-No painel, a seção **Testar sem estar ao vivo** gera eventos falsos (comentário, presente, combo de rosas, likes, follow, share). Eles aparecem no painel e em todos os overlays abertos.
+No painel, a seção **Testar sem estar ao vivo** gera eventos falsos (comentário, presente, combo de rosas, likes, follow, share). Também dá pra mandar um comentário de teste escrito por você (ex.: `!falar oi`, `!roleta`). Eles aparecem no painel e em todos os overlays abertos.
 
 ## Para desenvolver
 
@@ -125,8 +162,11 @@ npm run dev   # reinicia sozinho ao salvar
 - `src/media.js` biblioteca de mídia
 - `src/gifts.js` catálogo de presentes
 - `src/giftImport.js` baixa a lista oficial de presentes do TikTok
-- `src/goals.js` metas de presente
+- `src/goals.js` metas (presente, likes, seguidores, shares, coins)
 - `src/monthly.js` ranking mensal
+- `src/tts.js` leitura de comentários (voz do Windows)
+- `src/wheels.js` roletas
+- `public/shared/temas.css` temas dos overlays
 - `public/panel/` painel
 - `public/overlay/` um arquivo HTML por overlay
 - `data/` configurações, rankings, ações, presentes e mídias (fica fora do Git)

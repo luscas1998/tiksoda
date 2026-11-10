@@ -14,3 +14,11 @@
 .count small { font-size: 13px; color: var(--muted); font-weight: 400; }
 .btns { display: flex; gap: 6px; flex-wrap: wrap; }
 .goal .link-row input { font-size: 12px; }
+
+.model-pick { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.model-pick .seg { flex: 1; min-width: 200px; }
+.demo-preview { width: 200px; height: 200px; flex: none; }
+.demo-preview iframe { width: 400px; height: 400px; transform: scale(.5); }
+.goal-head .kind { font-size: 22px; width: 30px; text-align: center; flex: none; }
+.theme-row { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+.theme-row select { padding: 5px 8px; font-size: 13px; }

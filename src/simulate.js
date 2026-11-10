@@ -22,10 +22,10 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 let seq = 0;
 const base = (type) => ({ id: `sim-${Date.now()}-${++seq}`, type, at: Date.now(), simulated: true, user: { ...pick(USERS), avatar: '' } });
 
-export function simulate(type) {
+export function simulate(type, opts = {}) {
   switch (type) {
     case 'chat':
-      return { ...base('chat'), comment: pick(COMMENTS) };
+      return { ...base('chat'), comment: String(opts.comment || '').slice(0, 300) || pick(COMMENTS) };
     case 'gift': {
       const g = pick(GIFTS);
       const repeatCount = g.coinsEach >= 1000 ? 1 : 1 + Math.floor(Math.random() * 10);

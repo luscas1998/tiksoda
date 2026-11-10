@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Roleta</title>
+<link rel="stylesheet" href="panel.css">
+<link rel="stylesheet" href="acoes.css">
+<link rel="stylesheet" href="metas.css">
+<link rel="stylesheet" href="roleta.css">
+</head>
+<body>
+<header>
+  <h1>TikSoda <span class="badge">v0.5</span></h1>
+  <nav class="tabs"><a href="/painel/">Live e overlays</a><a href="/painel/acoes.html">Ações</a><a href="/painel/metas.html">Metas</a><a href="/painel/roleta.html" class="active">Roleta</a><a href="/painel/tts.html">TTS</a></nav>
+  <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
+</header>
+
+<main class="acoes">
+  <section class="card">
+    <h2 id="form-title">Nova roleta</h2>
+    <p class="hint">Cada roleta ganha o seu link pra colocar no LIVE Studio. Ela gira pelo botão aqui do painel, por um comando no chat e/ou quando chega um presente.</p>
+    <form id="form" class="form">
+      <input type="hidden" id="edit-id">
+      <label>Nome (só pra você)<input id="name" placeholder="Ex.: Roleta de desafios" maxlength="60"></label>
+      <label>Título na tela (opcional)<input id="title" placeholder="Ex.: 🎡 Roleta do castigo" maxlength="80"></label>
+
+      <div class="field">
+        <span class="label">Opções</span>
+        <ul id="options" class="opts"></ul>
+        <div class="row">
+          <button type="button" class="secondary small" id="add-option">+ Opção</button>
+          <span class="hint" style="margin:0">Peso maior = mais chance de cair. A mídia (opcional) toca quando cair naquela opção.</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Girar por comando no chat</span>
+        <div class="row">
+          <input id="command" placeholder="!roleta (deixe vazio pra desligar)" maxlength="30">
+          <select id="command-who">
+            <option value="todos">Qualquer pessoa</option>
+            <option value="presente">Só quem já mandou presente na live</option>
+          </select>
+        </div>
+        <label>Espera entre giros por comando (segundos)<input id="cooldown" type="number" min="0" max="3600" value="30"></label>
+      </div>
+
+      <div class="field">
+        <span class="label">Girar por presente <span id="gift-chosen" class="chosen">nenhum</span> <button type="button" class="secondary small" id="gift-clear">Sem presente</button></span>
+        <input id="gift-search" placeholder="Buscar presente pelo nome…" autocomplete="off">
+        <div id="gift-grid" class="gift-grid"></div>
+        <div class="row"><button type="button" class="secondary small" id="gift-refresh">⟳ Atualizar lista do TikTok</button><span id="gift-refresh-msg" class="msg"></span></div>
+        <p class="hint" id="gift-empty"></p>
+        <select id="gift-mode">
+          <option value="uma">Um giro por envio (combo de 5 = 1 giro)</option>
+          <option value="cada">Um giro por presente (combo de 5 = 5 giros, até 10)</option>
+        </select>
+      </div>
+
+      <div class="grid3">
+        <label>Tempo girando (s)<input id="spin-seconds" type="number" min="2" max="20" value="6"></label>
+        <label>Resultado na tela (s)<input id="show-seconds" type="number" min="1" max="30" value="5"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="hide-idle" checked> Esconder a roleta quando estiver parada</label>
+
+      <div class="row">
+        <button type="submit" id="save">Criar roleta</button>
+        <button type="button" class="secondary" id="cancel" hidden>Cancelar edição</button>
+        <span id="form-msg" class="msg"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card goals-card">
+    <h2>Suas roletas</h2>
+    <ul id="wheels" class="goals"></ul>
+  </section>
+</main>
+
+<script type="module" src="roleta.js"></script>
+</body>
+</html>

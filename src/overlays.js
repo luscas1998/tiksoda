@@ -40,9 +40,10 @@ export const OVERLAYS = [
   },
   {
     slug: 'midia',
-    name: 'Áudio e vídeo por presente',
-    description: 'Toca o áudio ou vídeo configurado para cada presente.',
+    name: 'Áudio e vídeo das ações',
+    description: 'Toca os áudios e vídeos das suas ações (presentes e metas de likes). Configure na aba Ações.',
     size: '1920 x 1080',
-    ready: false,
+    options: 'fila=0 (toca tudo junto) · volume=80 (volume geral) · ajustar=0 (vídeo no tamanho original)',
+    ready: true,
   },
 ];

@@ -5,9 +5,12 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { WebSocketServer } from 'ws';
 import { LiveManager } from './live.js';
-import { simulate } from './simulate.js';
+import { simulate, simulateCombo } from './simulate.js';
 import { OVERLAYS } from './overlays.js';
 import { Session } from './session.js';
+import { GiftCatalog } from './gifts.js';
+import { MediaLibrary } from './media.js';
+import { ActionRules } from './actions.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_DIR = path.join(ROOT, 'data');
@@ -40,6 +43,11 @@ app.get('/overlay/:slug', (req, res) => {
 
 const live = new LiveManager();
 const session = new Session(DATA_DIR);
+const gifts = new GiftCatalog(DATA_DIR);
+const media = new MediaLibrary(DATA_DIR);
+const actions = new ActionRules(DATA_DIR, media);
+
+app.use('/midia', express.static(media.dir, { fallthrough: false }));
 const recent = [];
 const RECENT_MAX = 50;
 
@@ -68,6 +76,62 @@ app.post('/api/rankings/reset', (_req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- presentes, mídia e ações ----------
+app.get('/api/gifts', (_req, res) => res.json(gifts.list()));
+
+app.get('/api/midia', (_req, res) => res.json(media.list()));
+
+app.post('/api/midia', express.raw({ type: () => true, limit: '300mb' }), (req, res) => {
+  try {
+    const name = decodeURIComponent(String(req.get('x-filename') || ''));
+    if (!req.body?.length) throw new Error('Arquivo vazio.');
+    res.json(media.save(name, req.body));
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.delete('/api/midia/:file', (req, res) => {
+  const used = actions.list().some((r) => r.media.file === req.params.file);
+  if (used) return res.status(400).json({ error: 'Essa mídia está sendo usada numa ação. Apague ou troque a ação antes.' });
+  try { media.remove(req.params.file); res.json({ ok: true }); }
+  catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.get('/api/acoes', (_req, res) => res.json(actions.list()));
+
+app.post('/api/acoes', (req, res) => {
+  try { res.json(actions.create(req.body)); } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.put('/api/acoes/:id', (req, res) => {
+  try { res.json(actions.update(req.params.id, req.body)); } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.delete('/api/acoes/:id', (req, res) => {
+  actions.remove(req.params.id);
+  res.json({ ok: true });
+});
+
+app.post('/api/acoes/:id/testar', (req, res) => {
+  const rule = actions.list().find((r) => r.id === req.params.id);
+  if (!rule) return res.status(404).json({ error: 'Regra não encontrada.' });
+  const extra = rule.trigger.repeat === 'cortar' ? { cut: true, times: 1 } : {};
+  broadcast({ kind: 'play', play: actions.play(rule, null, 'teste', extra) });
+  res.json({ ok: true });
+});
+
+// Toca uma mídia avulsa da biblioteca (botão de ouvir no painel).
+app.post('/api/midia/:file/tocar', (req, res) => {
+  if (!media.exists(req.params.file)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  const fake = { id: 'teste', media: { file: req.params.file, volume: 100 }, name: req.params.file };
+  broadcast({ kind: 'play', play: actions.play(fake, null, 'teste') });
+  res.json({ ok: true });
+});
+
+app.post('/api/test/combo', (_req, res) => {
+  simulateCombo(publish);
+  res.json({ ok: true });
+});
+
 app.post('/api/test/:type', (req, res) => {
   try {
     publish(simulate(req.params.type));
@@ -90,7 +154,12 @@ function broadcast(msg) {
 
 function publish(event) {
   // Atualiza rankings; follow repetido da mesma pessoa não vira alerta de novo.
+  const likesBefore = session.data.totals.likes;
   if (!session.record(event)) return;
+  gifts.learn(event);
+  for (const play of actions.match(event, likesBefore, session.data.totals.likes)) {
+    broadcast({ kind: 'play', play });
+  }
   // Durante um combo o presente chega várias vezes; guarda só o final no histórico.
   if (!event.streaking && event.type !== 'like' && event.type !== 'member') {
     recent.push(event);

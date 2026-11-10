@@ -28,7 +28,7 @@ Cada overlay tem o seu próprio link, mostrado no painel com botão de copiar.
 | Alertas | `/overlay/alertas` | pronto |
 | Ranking de likes | `/overlay/ranking-likes` | pronto |
 | Ranking de coins | `/overlay/ranking-coins` | pronto |
-| Áudio e vídeo por presente | `/overlay/midia` | em breve |
+| Áudio e vídeo das ações | `/overlay/midia` | pronto |
 
 ### Opções do feed de eventos
 
@@ -57,9 +57,33 @@ Os alertas entram numa fila: um de cada vez, sem atropelar. Follow repetido da m
 
 Os rankings contam a live atual. Zeram sozinhos quando você conecta numa live nova e ficam salvos em `data/session.json`, então fechar e abrir o app no meio da live não perde nada. No painel tem o botão **Zerar rankings**.
 
+### Opções do áudio e vídeo
+
+- `?fila=0` toca tudo ao mesmo tempo (padrão: um depois do outro)
+- `?volume=80` volume geral, em %
+- `?ajustar=0` vídeo no tamanho original (padrão: ocupa a tela toda)
+
+Coloque este overlay em tela cheia no LIVE Studio. No navegador comum o som pode precisar de um clique pra liberar; no LIVE Studio e no OBS não precisa.
+
+## Ações (aba Ações do painel)
+
+Regras do tipo "quando acontecer X, tocar Y":
+
+- **Presente**: ao receber um presente específico, toca um áudio, vídeo ou GIF. Quando mandam vários de uma vez, dá pra escolher:
+  - tocar uma vez só (no fim do combo);
+  - repetir pela quantidade, um depois do outro (até 10);
+  - **cortar e repetir**: cada presente reinicia a mídia na hora, inclusive durante o combo (fica picotado de propósito).
+- **Meta de likes**: a cada N likes na live, ou uma vez ao chegar em N likes.
+
+Envie os arquivos na **Biblioteca de mídia** da mesma aba; eles ficam em `data/midia/`. Cada ação tem botão de **Testar**, liga/desliga, editar e apagar.
+
+### Lista de presentes
+
+A lista oficial completa de presentes do TikTok só vem pelo plano pago do serviço de assinatura. Por isso o app aprende sozinho: todo presente que chega numa live conectada (sua ou de outro criador) fica salvo em `data/gifts.json`, com nome, valor e imagem. Dica: conecte numa live grande por alguns minutos pra encher a lista. Também dá pra digitar o nome exato do presente.
+
 ## Testar sem estar ao vivo
 
-No painel, a seção **Testar sem estar ao vivo** gera eventos falsos (comentário, presente, likes, follow, share). Eles aparecem no painel e em todos os overlays abertos.
+No painel, a seção **Testar sem estar ao vivo** gera eventos falsos (comentário, presente, combo de rosas, likes, follow, share). Eles aparecem no painel e em todos os overlays abertos.
 
 ## Para desenvolver
 
@@ -73,6 +97,11 @@ npm run dev   # reinicia sozinho ao salvar
 - `src/normalize.js` converte eventos do TikTok num formato simples
 - `src/overlays.js` lista de overlays
 - `src/session.js` rankings e totais da live
+- `src/actions.js` regras de ações (presente/likes → mídia)
+- `src/media.js` biblioteca de mídia
+- `src/gifts.js` catálogo de presentes aprendido
 - `public/panel/` painel
 - `public/overlay/` um arquivo HTML por overlay
-- `data/config.json` configurações salvas (fica fora do Git)
+- `data/` configurações, rankings, ações, presentes e mídias (fica fora do Git)
+
+Veja o [ROADMAP.md](ROADMAP.md) para o que vem a seguir.

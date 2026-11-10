@@ -48,3 +48,22 @@ export function simulate(type) {
       throw new Error(`Tipo de teste desconhecido: ${type}`);
   }
 }
+
+// Combo de rosas como o TikTok manda: vários eventos com a contagem subindo
+// (streaking) e um final com o total.
+export function simulateCombo(publish, total = 8) {
+  const user = { ...pick(USERS), avatar: '' };
+  const groupId = String(Date.now());
+  let count = 0;
+  const step = () => {
+    count = Math.min(total, count + 1 + Math.floor(Math.random() * 2));
+    const final = count >= total;
+    publish({
+      id: `sim-${Date.now()}-${++seq}`, type: 'gift', at: Date.now(), simulated: true, user,
+      giftId: '5655', giftName: 'Rosa', coinsEach: 1, giftImage: '', repeatCount: count,
+      totalCoins: count, streaking: !final, groupId,
+    });
+    if (!final) setTimeout(step, 250);
+  };
+  step();
+}

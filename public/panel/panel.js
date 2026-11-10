@@ -1,4 +1,4 @@
-import { connectLive, escapeHtml, initials, describe } from '/shared/live-client.js';
+import { connectLive, escapeHtml, initials, describe, formatNumber } from '/shared/live-client.js';
 
 const $ = (id) => document.getElementById(id);
 const STATE_LABEL = {
@@ -8,8 +8,6 @@ const STATE_LABEL = {
   erro: 'Erro',
 };
 
-let sessionLikes = 0;
-let sessionCoins = 0;
 
 function renderStatus(s) {
   const el = $('status');
@@ -22,8 +20,6 @@ function renderStatus(s) {
 
 function addToFeed(ev) {
   if (ev.streaking) return;
-  if (ev.type === 'like') { sessionLikes += ev.likeCount; $('likes').textContent = sessionLikes.toLocaleString('pt-BR'); }
-  if (ev.type === 'gift') { sessionCoins += ev.totalCoins; $('coins').textContent = sessionCoins.toLocaleString('pt-BR'); }
   if ((ev.type === 'like' || ev.type === 'member') && !$('show-likes').checked) return;
 
   const feed = $('feed');
@@ -48,7 +44,7 @@ function renderOverlays(list, port) {
     <li class="${o.ready ? '' : 'soon'}">
       <div>
         <b>${escapeHtml(o.name)}</b> ${o.ready ? '' : '<span class="tag">em breve</span>'}
-        <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span></p>
+        <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span>${o.options && o.ready ? `<span class="size">Opções no link: <code>${escapeHtml(o.options)}</code></span>` : ''}</p>
       </div>
       ${o.ready ? `<div class="row link-row">
         <input readonly value="${base}/overlay/${o.slug}">
@@ -71,13 +67,27 @@ document.addEventListener('click', async (e) => {
 
 $('connect-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  sessionLikes = 0; sessionCoins = 0;
-  $('likes').textContent = '0'; $('coins').textContent = '0';
   const res = await fetch('/api/connect', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: $('username').value }),
   });
   if (!res.ok) $('status-detail').textContent = (await res.json()).error;
+});
+
+function renderRankings(r) {
+  if (!r) return;
+  $('likes').textContent = (r.totals.likes || 0).toLocaleString('pt-BR');
+  $('coins').textContent = (r.totals.coins || 0).toLocaleString('pt-BR');
+  for (const kind of ['likes', 'coins']) {
+    const rows = r[kind].slice(0, 10);
+    $(`rank-${kind}`).innerHTML = rows.length
+      ? rows.map((u) => `<li><span title="@${escapeHtml(u.username)}">${escapeHtml(u.nickname)}</span><b>${formatNumber(u.value)}</b></li>`).join('')
+      : '<li class="vazio">Ninguém ainda.</li>';
+  }
+}
+
+$('btn-reset').addEventListener('click', () => {
+  if (confirm('Zerar os rankings de likes e coins desta live?')) fetch('/api/rankings/reset', { method: 'POST' });
 });
 
 $('btn-disconnect').addEventListener('click', () => fetch('/api/disconnect', { method: 'POST' }));
@@ -88,8 +98,9 @@ renderOverlays(info.overlays, info.port);
 renderStatus(info.status);
 
 connectLive({
-  onHello: ({ status, recent }) => { renderStatus(status); $('feed').innerHTML = '<li class="empty">Nenhum evento ainda.</li>'; recent.forEach(addToFeed); },
+  onHello: ({ status, recent, rankings }) => { renderStatus(status); renderRankings(rankings); $('feed').innerHTML = '<li class="empty">Nenhum evento ainda.</li>'; recent.forEach(addToFeed); },
   onEvent: addToFeed,
   onStatus: renderStatus,
+  onRankings: renderRankings,
   onSocket: (ok) => { if (!ok) renderStatus({ state: 'erro', message: 'O app foi fechado. Abra o TikSoda de novo.' }); },
 });

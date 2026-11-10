@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Ranking</title>
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; color: #fff; padding: 12px; box-sizing: border-box; }
+  .box {
+    background: rgba(15, 15, 25, 0.75); border-radius: 18px; padding: 14px 14px 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.35);
+  }
+  .box.sem-fundo { background: transparent; box-shadow: none; padding: 0; }
+  h1 {
+    margin: 0 0 10px; font-size: 20px; display: flex; align-items: center; gap: 8px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.6);
+  }
+  h1 .icon { font-size: 22px; }
+  ol { list-style: none; margin: 0; padding: 0; position: relative; }
+  li {
+    display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 10px;
+    border-radius: 12px; background: rgba(255,255,255,.06); margin-bottom: 6px;
+    transition: transform 400ms ease, background 300ms;
+    text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
+  li.flash { background: rgba(255,255,255,.22); }
+  .pos { width: 26px; text-align: center; font-weight: 800; font-size: 17px; flex: none; }
+  li:nth-child(1) .pos { color: #ffd23f; }
+  li:nth-child(2) .pos { color: #d6dbe4; }
+  li:nth-child(3) .pos { color: #e3a46f; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; flex: none; background: #444 center/cover; display: grid; place-items: center; font-weight: 700; }
+  .name { flex: 1; min-width: 0; font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .value { font-weight: 800; font-size: 16px; flex: none; color: var(--accent); }
+  .vazio { opacity: .75; font-size: 15px; padding: 6px 2px; }
+</style>
+</head>
+<body>
+<div class="box" id="box">
+  <h1><span class="icon" id="icon"></span><span id="title"></span></h1>
+  <ol id="list"></ol>
+</div>
+<script type="module">
+  import { connectLive, escapeHtml, initials, formatNumber } from '/shared/live-client.js';
+
+  // Este arquivo serve aos dois links: /overlay/ranking-likes e /overlay/ranking-coins.
+  const kind = location.pathname.includes('coins') ? 'coins' : 'likes';
+  const DEFAULTS = {
+    likes: { title: 'Top likes', icon: '❤️', accent: '#ff4f8b', unit: '' },
+    coins: { title: 'Top presentes', icon: '🪙', accent: '#ffc93c', unit: '' },
+  }[kind];
+
+  // Opções pela URL: ?top=5&titulo=Meu%20top&fundo=0
+  const params = new URLSearchParams(location.search);
+  const TOP = Math.min(20, Number(params.get('top')) || 5);
+  document.getElementById('title').textContent = params.get('titulo') || DEFAULTS.title;
+  document.getElementById('icon').textContent = DEFAULTS.icon;
+  document.documentElement.style.setProperty('--accent', params.get('cor') ? `#${params.get('cor').replace('#', '')}` : DEFAULTS.accent);
+  if (params.get('fundo') === '0') document.getElementById('box').classList.add('sem-fundo');
+
+  const list = document.getElementById('list');
+  let last = {};
+
+  function render(rankings) {
+    const rows = (rankings?.[kind] || []).slice(0, TOP);
+    if (!rows.length) {
+      list.innerHTML = `<li class="vazio">${kind === 'likes' ? 'Manda like aí! ❤️' : 'Seja o primeiro a mandar presente!'}</li>`;
+      last = {};
+      return;
+    }
+    const now = {};
+    list.innerHTML = rows.map((r, i) => {
+      now[r.username] = r.value;
+      const changed = last[r.username] !== undefined && last[r.username] !== r.value;
+      const avatar = r.avatar
+        ? `<div class="avatar" style="background-image:url('${escapeHtml(r.avatar)}')"></div>`
+        : `<div class="avatar">${escapeHtml(initials(r.nickname))}</div>`;
+      return `<li class="${changed ? 'flash' : ''}"><span class="pos">${i + 1}</span>${avatar}
+        <span class="name">${escapeHtml(r.nickname)}</span><span class="value">${formatNumber(r.value)}</span></li>`;
+    }).join('');
+    last = now;
+    setTimeout(() => list.querySelectorAll('.flash').forEach((el) => el.classList.remove('flash')), 350);
+  }
+
+  connectLive({
+    onHello: ({ rankings }) => render(rankings),
+    onRankings: render,
+  });
+</script>
+</body>
+</html>

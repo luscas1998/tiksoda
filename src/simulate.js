@@ -35,7 +35,12 @@ export function simulate(type) {
       const likeCount = 5 + Math.floor(Math.random() * 30);
       return { ...base('like'), likeCount, totalLikes: 0 };
     }
-    case 'follow':
+    case 'follow': {
+      // id único para o teste não ser barrado como "já seguiu".
+      const ev = base('follow');
+      ev.user.id = `${ev.user.id}-${seq}`;
+      return ev;
+    }
     case 'share':
     case 'member':
       return base(type);

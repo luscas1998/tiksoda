@@ -25,9 +25,9 @@ Cada overlay tem o seu próprio link, mostrado no painel com botão de copiar.
 | Overlay | Link | Status |
 |---|---|---|
 | Feed de eventos | `/overlay/eventos` | pronto |
-| Alertas | `/overlay/alertas` | em breve |
-| Ranking de likes | `/overlay/ranking-likes` | em breve |
-| Ranking de coins | `/overlay/ranking-coins` | em breve |
+| Alertas | `/overlay/alertas` | pronto |
+| Ranking de likes | `/overlay/ranking-likes` | pronto |
+| Ranking de coins | `/overlay/ranking-coins` | pronto |
 | Áudio e vídeo por presente | `/overlay/midia` | em breve |
 
 ### Opções do feed de eventos
@@ -39,6 +39,23 @@ Dá pra ajustar pelo link:
 - `?tipos=gift,follow` quais eventos mostrar (`chat`, `gift`, `follow`, `share`)
 
 Exemplo: `http://localhost:3330/overlay/eventos?max=5&tempo=20&tipos=gift,follow,share`
+
+### Opções dos alertas
+
+- `?tipos=gift,follow` quais eventos viram alerta (`gift`, `follow`, `share`)
+- `?min=10` só presentes de pelo menos 10 coins
+- `?tempo=5` segundos que cada alerta fica na tela
+
+Os alertas entram numa fila: um de cada vez, sem atropelar. Follow repetido da mesma pessoa na mesma live não gera alerta de novo.
+
+### Opções dos rankings
+
+- `?top=5` quantas pessoas aparecem (até 20)
+- `?titulo=Top%20da%20live` muda o título
+- `?fundo=0` tira o fundo escuro
+- `?cor=ff4f8b` cor dos números (sem o #)
+
+Os rankings contam a live atual. Zeram sozinhos quando você conecta numa live nova e ficam salvos em `data/session.json`, então fechar e abrir o app no meio da live não perde nada. No painel tem o botão **Zerar rankings**.
 
 ## Testar sem estar ao vivo
 
@@ -55,6 +72,7 @@ npm run dev   # reinicia sozinho ao salvar
 - `src/live.js` conexão com a live
 - `src/normalize.js` converte eventos do TikTok num formato simples
 - `src/overlays.js` lista de overlays
+- `src/session.js` rankings e totais da live
 - `public/panel/` painel
 - `public/overlay/` um arquivo HTML por overlay
 - `data/config.json` configurações salvas (fica fora do Git)

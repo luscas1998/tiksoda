@@ -58,14 +58,15 @@ function renderOverlays(list, port) {
     <li class="${o.ready ? '' : 'soon'}" data-slug="${o.slug}">
       <div class="ov-info">
         <b>${escapeHtml(o.name)}</b> ${o.ready ? '' : '<span class="tag">em breve</span>'}
-        <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span>${o.options && o.ready ? `<span class="size">Opções no link: <code>${escapeHtml(o.options)}</code></span>` : ''}</p>
-        ${o.ready ? `<div class="row link-row">
+        <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span>${o.options && o.ready && !o.tab ? `<span class="size">Opções no link: <code>${escapeHtml(o.options)}</code></span>` : ''}</p>
+        ${o.tab ? `<a class="button secondary" href="${o.tab}">Abrir aba ${escapeHtml(o.name)}</a>` : ''}
+        ${o.ready && !o.tab ? `<div class="row link-row">
           <input class="ov-link" value="${base}/overlay/${o.slug}" spellcheck="false" title="Dá pra editar: junte opções no fim, ex. ?top=3">
           <button class="secondary" data-copy>Copiar</button>
           <a class="secondary button ov-open" href="/overlay/${o.slug}" target="_blank">Abrir</a>
         </div>` : ''}
       </div>
-      ${o.ready ? `<div class="ov-preview"><span class="preview-label">Prévia ao vivo</span>${previewHtml(o)}</div>` : ''}
+      ${o.ready && !o.tab ? `<div class="ov-preview"><span class="preview-label">Prévia ao vivo</span>${previewHtml(o)}</div>` : ''}
     </li>`).join('');
 }
 
@@ -123,6 +124,41 @@ function renderRankings(r) {
   }
 }
 
+const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const monthName = (key) => { const [y, m] = key.split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; };
+const rankList = (rows) => rows.length
+  ? rows.slice(0, 10).map((u) => `<li><span title="@${escapeHtml(u.username)}">${escapeHtml(u.nickname)}</span><b>${formatNumber(u.value)}</b></li>`).join('')
+  : '<li class="vazio">Ninguém ainda.</li>';
+
+function renderMonthly(r) {
+  if (!r) return;
+  $('month-label').textContent = monthName(r.month);
+  $('month-likes').innerHTML = rankList(r.likes);
+  $('month-coins').innerHTML = rankList(r.coins);
+}
+
+async function loadMonthlyExtras() {
+  const m = await (await fetch('/api/mensal')).json();
+  renderMonthly(m);
+  if (document.activeElement !== $('my-username')) $('my-username').value = m.myUsername || '';
+  $('month-history').innerHTML = m.history.length
+    ? m.history.map((h) => `<div class="mes"><b>${monthName(h.month)} <span class="tag">${escapeHtml(h.label)}</span></b>
+        <div class="rankings"><ol class="rank">${rankList(h.likes)}</ol><ol class="rank">${rankList(h.coins)}</ol></div></div>`).join('')
+    : '<p class="hint">Nenhum mês fechado ainda.</p>';
+}
+
+$('btn-reset-month').addEventListener('click', async () => {
+  if (!confirm('Zerar o ranking mensal? O que tem agora vai pro histórico.')) return;
+  await fetch('/api/mensal/reset', { method: 'POST' });
+  await loadMonthlyExtras();
+});
+
+$('my-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await fetch('/api/mensal/meu-usuario', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: $('my-username').value }) });
+  await loadMonthlyExtras();
+});
+
 $('btn-reset').addEventListener('click', () => {
   if (confirm('Zerar os rankings de likes e coins desta live?')) fetch('/api/rankings/reset', { method: 'POST' });
 });
@@ -133,11 +169,13 @@ const info = await (await fetch('/api/status')).json();
 if (info.config?.username) $('username').value = info.config.username;
 renderOverlays(info.overlays, info.port);
 renderStatus(info.status);
+loadMonthlyExtras();
 
 connectLive({
-  onHello: ({ status, recent, rankings }) => { renderStatus(status); renderRankings(rankings); $('feed').innerHTML = '<li class="empty">Nenhum evento ainda.</li>'; recent.forEach(addToFeed); },
+  onHello: ({ status, recent, rankings, monthly }) => { renderStatus(status); renderRankings(rankings); renderMonthly(monthly); $('feed').innerHTML = '<li class="empty">Nenhum evento ainda.</li>'; recent.forEach(addToFeed); },
   onEvent: addToFeed,
   onStatus: renderStatus,
   onRankings: renderRankings,
+  onMonthly: renderMonthly,
   onSocket: (ok) => { if (!ok) renderStatus({ state: 'erro', message: 'O app foi fechado. Abra o TikSoda de novo.' }); },
 });

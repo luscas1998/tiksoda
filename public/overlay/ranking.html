@@ -44,15 +44,17 @@
   import { connectLive, escapeHtml, initials, formatNumber } from '/shared/live-client.js';
 
   // Este arquivo serve aos dois links: /overlay/ranking-likes e /overlay/ranking-coins.
+  // Também serve aos rankings mensais: /overlay/ranking-mensal-likes e -coins.
   const kind = location.pathname.includes('coins') ? 'coins' : 'likes';
+  const mensal = location.pathname.includes('mensal');
   const DEFAULTS = {
-    likes: { title: 'Top likes', icon: '❤️', accent: '#ff4f8b', unit: '' },
-    coins: { title: 'Top presentes', icon: '🪙', accent: '#ffc93c', unit: '' },
+    likes: { title: mensal ? 'Top likes do mês' : 'Top likes', icon: '❤️', accent: '#ff4f8b' },
+    coins: { title: mensal ? 'Top presentes do mês' : 'Top presentes', icon: mensal ? '🏆' : '🪙', accent: '#ffc93c' },
   }[kind];
 
   // Opções pela URL: ?top=5&titulo=Meu%20top&fundo=0
   const params = new URLSearchParams(location.search);
-  const TOP = Math.min(20, Number(params.get('top')) || 5);
+  const TOP = Math.min(20, Number(params.get('top')) || (mensal ? 10 : 5));
   document.getElementById('title').textContent = params.get('titulo') || DEFAULTS.title;
   document.getElementById('icon').textContent = DEFAULTS.icon;
   document.documentElement.style.setProperty('--accent', params.get('cor') ? `#${params.get('cor').replace('#', '')}` : DEFAULTS.accent);
@@ -82,7 +84,10 @@
     setTimeout(() => list.querySelectorAll('.flash').forEach((el) => el.classList.remove('flash')), 350);
   }
 
-  connectLive({
+  connectLive(mensal ? {
+    onHello: ({ monthly }) => render(monthly),
+    onMonthly: render,
+  } : {
     onHello: ({ rankings }) => render(rankings),
     onRankings: render,
   });

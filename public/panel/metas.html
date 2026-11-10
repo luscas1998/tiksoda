@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Metas</title>
+<link rel="stylesheet" href="panel.css">
+<link rel="stylesheet" href="acoes.css">
+<link rel="stylesheet" href="metas.css">
+</head>
+<body>
+<header>
+  <h1>TikSoda <span class="badge">v0.4</span></h1>
+  <nav class="tabs"><a href="/painel/">Live e overlays</a><a href="/painel/acoes.html">Ações</a><a href="/painel/metas.html" class="active">Metas</a></nav>
+  <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
+</header>
+
+<main class="acoes">
+  <section class="card">
+    <h2 id="form-title">Nova meta de presente</h2>
+    <p class="hint">Cada meta ganha o seu próprio link pra colocar no LIVE Studio. Presentes de teste também contam; use <b>Zerar</b> depois de testar.</p>
+    <form id="form" class="form">
+      <input type="hidden" id="edit-id">
+      <label>Nome (só pra você)<input id="name" placeholder="Ex.: Meta das rosas" maxlength="60"></label>
+
+      <div class="field">
+        <span class="label">Presente <span id="gift-chosen" class="chosen">nenhum escolhido</span></span>
+        <input id="gift-search" placeholder="Buscar presente pelo nome…" autocomplete="off">
+        <div id="gift-grid" class="gift-grid"></div>
+        <p class="hint" id="gift-empty"></p>
+      </div>
+
+      <label>Quantos quer receber<input id="target" type="number" min="1" step="1" value="10"></label>
+
+      <div class="field">
+        <span class="label">Textos</span>
+        <input id="text-top" placeholder="Em cima (ex.: Meta de rosas 🌹)" maxlength="120">
+        <input id="text-bottom" placeholder="Embaixo" value="{atual}/{meta}" maxlength="120">
+        <p class="hint">Use <code>{atual}</code>, <code>{meta}</code>, <code>{faltam}</code>, <code>{presente}</code> e <code>{vezes}</code> (quantas vezes já bateu). Ex.: <code>Faltam {faltam} {presente}s pra eu dançar!</code></p>
+      </div>
+
+      <label>Quando bater a meta
+        <select id="on-complete">
+          <option value="recomecar">Comemorar e começar de novo</option>
+          <option value="manter">Comemorar e ficar "concluída" na tela</option>
+          <option value="sumir">Comemorar e sumir da tela</option>
+        </select>
+      </label>
+
+      <div class="field">
+        <span class="label">Tocar ao bater (opcional)</span>
+        <div class="row">
+          <select id="media-file"></select>
+          <span class="vol">🔊 <input id="volume" type="range" min="0" max="100" value="100"> <b id="volume-val">100%</b></span>
+        </div>
+        <p class="hint">Toca no overlay de áudio e vídeo. Envie arquivos na aba Ações.</p>
+      </div>
+
+      <label class="check"><input type="checkbox" id="show-top" checked> Mostrar quem mais ajudou na meta (👑)</label>
+
+      <div class="row">
+        <button type="submit" id="save">Criar meta</button>
+        <button type="button" class="secondary" id="cancel" hidden>Cancelar edição</button>
+        <span id="form-msg" class="msg"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card goals-card">
+    <h2>Suas metas</h2>
+    <ul id="goals" class="goals"></ul>
+  </section>
+</main>
+
+<script type="module" src="metas.js"></script>
+</body>
+</html>

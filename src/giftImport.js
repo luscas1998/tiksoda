@@ -42,13 +42,14 @@ export function extractGifts(json) {
   return [...found.values()].filter((g) => g.name && g.image);
 }
 
-async function viaDirect(username) {
+async function viaDirect(username, raw) {
   const conn = new TikTokLiveConnection(username, { fetchRoomInfoOnConnect: false });
   const roomId = await conn.fetchRoomId();
   const json = await conn.webClient.getJsonObjectFromWebcastApi('gift/list/', {
     ...conn.webClient.clientParams,
     room_id: roomId,
   }, false);
+  raw.push({ url: 'gift/list (direto)', json });
   return extractGifts(json);
 }
 
@@ -71,7 +72,7 @@ function findBrowser() {
   return candidates.find((p) => existsSync(p)) || null;
 }
 
-async function viaBrowser(username, timeoutMs = 35000) {
+async function viaBrowser(username, raw, timeoutMs = 35000) {
   const executablePath = findBrowser();
   if (!executablePath) throw new Error('Não achei o Edge nem o Chrome no seu PC.');
   const puppeteer = (await import('puppeteer-core')).default;
@@ -90,7 +91,9 @@ async function viaBrowser(username, timeoutMs = 35000) {
         const url = res.url();
         if (!/\/webcast\/gift\/(list|gallery)/.test(url)) return;
         try {
-          for (const g of extractGifts(await res.json())) gifts.set(g.id, g);
+          const json = await res.json();
+          raw.push({ url, json });
+          for (const g of extractGifts(json)) gifts.set(g.id, g);
           if (gifts.size > 20) resolve();
         } catch { /* resposta que não é JSON */ }
       });
@@ -107,14 +110,15 @@ export async function importTikTokGifts(username) {
   const user = String(username || '').replace(/^@/, '').trim();
   if (!user) throw new Error('Informe o @ de alguém que esteja ao vivo agora.');
   const errors = [];
+  const raw = []; // respostas completas do TikTok, guardadas pra investigar animações
   try {
-    const gifts = await viaDirect(user);
-    if (gifts.length) return { gifts, method: 'direto' };
+    const gifts = await viaDirect(user, raw);
+    if (gifts.length) return { gifts, method: 'direto', raw };
     errors.push('pedido direto voltou vazio');
   } catch (err) { errors.push(`pedido direto: ${err.message}`); }
   try {
-    const gifts = await viaBrowser(user);
-    if (gifts.length) return { gifts, method: 'navegador' };
+    const gifts = await viaBrowser(user, raw);
+    if (gifts.length) return { gifts, method: 'navegador', raw };
     errors.push('a página da live não trouxe a lista');
   } catch (err) { errors.push(`navegador: ${err.message}`); }
   const e = new Error(`Não consegui baixar a lista. Confira se @${user} está ao vivo agora e tente de novo. (${errors.join('; ')})`);

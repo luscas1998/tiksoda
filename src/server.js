@@ -126,7 +126,8 @@ app.post('/api/gifts/atualizar', async (req, res) => {
   if (!username) return res.json({ needUser: true });
   try {
     importing ??= importTikTokGifts(username).finally(() => { importing = null; });
-    const { gifts: list, method } = await importing;
+    const { gifts: list, method, raw } = await importing;
+    try { writeFileSync(path.join(DATA_DIR, 'gifts-raw.json'), JSON.stringify({ savedAt: new Date().toISOString(), method, responses: raw })); } catch { /* só diagnóstico */ }
     res.json({ ok: true, method, found: list.length, ...gifts.importMany(list) });
   } catch (err) {
     res.status(502).json({ error: err.message });

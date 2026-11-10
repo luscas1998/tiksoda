@@ -21,7 +21,7 @@ export function createGiftPicker({ search, grid, empty, chosenLabel, onChange })
     grid.innerHTML = html;
     empty.textContent = gifts.length
       ? `${gifts.length} presentes conhecidos. A lista cresce sozinha conforme chegam presentes nas lives.`
-      : 'O app ainda não conhece nenhum presente. Ele aprende sozinho: conecte numa live movimentada (sua ou de outro criador) por alguns minutos. Enquanto isso, dá pra digitar o nome exato do presente na busca.';
+      : 'A lista está vazia. Clique em "Atualizar lista do TikTok" pra baixar todos os presentes com ícone. O app também aprende sozinho com os presentes que chegam nas lives.';
     chosenLabel.textContent = chosen ? chosen.giftName : 'nenhum escolhido';
   }
 
@@ -42,4 +42,31 @@ export function createGiftPicker({ search, grid, empty, chosenLabel, onChange })
     set value(v) { chosen = v; search.value = ''; render(); },
     render,
   };
+}
+
+// Botão "Atualizar lista do TikTok": baixa a lista oficial com ícones.
+export function setupGiftRefresh(button, msgEl, onDone) {
+  const setMsg = (text, kind = '') => { msgEl.className = `msg ${kind}`; msgEl.textContent = text; };
+  const run = async (username = '') => {
+    button.disabled = true;
+    setMsg('Baixando a lista do TikTok… pode levar até 1 minuto.');
+    try {
+      const res = await fetch('/api/gifts/atualizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
+      const data = await res.json();
+      if (data.needUser) {
+        const u = prompt('Você não está conectado numa live. Digite o @ de alguém que esteja ao vivo agora (pode ser um criador grande):');
+        if (u) return run(u);
+        setMsg('');
+        return;
+      }
+      if (!res.ok) throw new Error(data.error);
+      setMsg(`Pronto: ${data.total} presentes na lista (${data.added} novos).`, 'ok');
+      onDone?.();
+    } catch (err) {
+      setMsg(err.message, 'err');
+    } finally {
+      button.disabled = false;
+    }
+  };
+  button.addEventListener('click', () => run());
 }

@@ -1,4 +1,5 @@
 import { connectLive, escapeHtml, formatNumber } from '/shared/live-client.js';
+import { setupGiftRefresh } from './gift-picker.js';
 
 const $ = (id) => document.getElementById(id);
 const api = async (url, opts = {}) => {
@@ -39,7 +40,7 @@ function renderGifts() {
   $('gift-grid').innerHTML = html;
   $('gift-empty').textContent = gifts.length
     ? `${gifts.length} presentes conhecidos. A lista cresce sozinha conforme chegam presentes nas lives.`
-    : 'O app ainda não conhece nenhum presente. Ele aprende sozinho: conecte numa live movimentada (sua ou de outro criador) por alguns minutos. Enquanto isso, dá pra digitar o nome exato do presente na busca.';
+    : 'A lista está vazia. Clique em "Atualizar lista do TikTok" pra baixar todos os presentes com ícone. O app também aprende sozinho com os presentes que chegam nas lives.';
   $('gift-chosen').textContent = chosenGift ? chosenGift.giftName : 'nenhum escolhido';
 }
 
@@ -234,6 +235,7 @@ async function loadGifts() { gifts = await api('/api/gifts'); renderGifts(); ren
 
 await Promise.all([loadMedia(), loadRules(), loadGifts()]);
 syncTriggerFields();
+setupGiftRefresh($('gift-refresh'), $('gift-refresh-msg'), loadGifts);
 setInterval(loadGifts, 30000); // pega presentes novos aprendidos durante a live
 
 connectLive({

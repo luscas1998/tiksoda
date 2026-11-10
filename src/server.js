@@ -13,6 +13,7 @@ import { MediaLibrary } from './media.js';
 import { ActionRules } from './actions.js';
 import { GiftGoals } from './goals.js';
 import { MonthlyRanking } from './monthly.js';
+import { importTikTokGifts } from './giftImport.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_DIR = path.join(ROOT, 'data');
@@ -115,6 +116,23 @@ app.post('/api/metas/:id/ajustar', goalRoute((req) => goals.publicGoal(goals.adj
 
 // ---------- presentes, mídia e ações ----------
 app.get('/api/gifts', (_req, res) => res.json(gifts.list()));
+
+// Baixa a lista oficial de presentes do TikTok. Usa a live conectada,
+// ou o @ informado (precisa ser alguém que esteja ao vivo agora).
+let importing = null;
+app.post('/api/gifts/atualizar', async (req, res) => {
+  const username = String(req.body?.username || '').trim()
+    || (live.status.state === 'conectado' ? live.status.username : '');
+  if (!username) return res.json({ needUser: true });
+  try {
+    importing ??= importTikTokGifts(username).finally(() => { importing = null; });
+    const { gifts: list, method, raw } = await importing;
+    try { writeFileSync(path.join(DATA_DIR, 'gifts-raw.json'), JSON.stringify({ savedAt: new Date().toISOString(), method, responses: raw })); } catch { /* só diagnóstico */ }
+    res.json({ ok: true, method, found: list.length, ...gifts.importMany(list) });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
 
 app.get('/api/midia', (_req, res) => res.json(media.list()));
 

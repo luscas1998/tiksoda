@@ -27,7 +27,9 @@ export class LiveManager extends EventEmitter {
 
     this.setStatus({ state: 'conectando', username: clean, message: '', viewers: 0 });
     const conn = new TikTokLiveConnection(clean, {
-      enableExtendedGiftInfo: true,
+      // Não usar enableExtendedGiftInfo: a lista de presentes precisa de plano pago do
+      // serviço de assinatura. O evento de presente já traz nome, valor e imagem.
+      enableExtendedGiftInfo: false,
       processInitialData: false,
     });
     this.connection = conn;

@@ -1,0 +1,16 @@
+.goals-card { grid-row: span 2; }
+.goals { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 12px; }
+.goal { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.goal.off { opacity: .55; }
+.goal-head { display: flex; align-items: center; gap: 10px; }
+.goal-head .desc { flex: 1; min-width: 0; }
+.goal-head .desc small { color: var(--muted); display: block; }
+.goal-body { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.goal-body .preview { flex: none; }
+.goal-side { flex: 1; min-width: 180px; display: grid; gap: 8px; }
+.progress { height: 10px; border-radius: 10px; background: var(--bg); overflow: hidden; }
+.progress div { height: 100%; background: linear-gradient(90deg, var(--warn), var(--accent)); }
+.count { font-size: 22px; font-weight: 800; }
+.count small { font-size: 13px; color: var(--muted); font-weight: 400; }
+.btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.goal .link-row input { font-size: 12px; }

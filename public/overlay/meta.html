@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Meta de presente</title>
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; width: 100%; height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif; color: #fff;
+    display: grid; place-items: center; --c: #ffc93c;
+  }
+  .meta {
+    display: grid; justify-items: center; gap: 6px; text-align: center; padding: 14px 20px;
+    transition: opacity 400ms, transform 400ms;
+  }
+  .meta.escondida { opacity: 0; transform: scale(.85); }
+  .txt { font-weight: 800; font-size: 26px; line-height: 1.15; max-width: 92vw; text-shadow: 0 2px 6px rgba(0,0,0,.7), 0 0 2px #000; }
+  .txt:empty { display: none; }
+  .presente { width: 130px; height: 130px; display: grid; place-items: center; animation: pulsa 1.1s ease-in-out infinite; filter: drop-shadow(0 0 14px var(--c)); }
+  .presente img { width: 100%; height: 100%; object-fit: contain; }
+  .presente .ph { font-size: 96px; }
+  .bottom { font-size: 40px; color: var(--c); }
+  .bottom.pop { animation: pop 350ms ease-out; }
+  .barra { width: 240px; height: 12px; border-radius: 12px; background: rgba(0,0,0,.45); overflow: hidden; box-shadow: 0 0 0 2px rgba(255,255,255,.15); }
+  .barra div { height: 100%; width: 0; background: linear-gradient(90deg, var(--c), #fff7c2); border-radius: 12px; transition: width 400ms ease; }
+  .top { font-size: 17px; font-weight: 600; opacity: .95; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+  .top:empty { display: none; }
+  .concluida .presente { animation: none; filter: drop-shadow(0 0 22px var(--c)) saturate(1.2); }
+  .selo { display: none; font-weight: 900; font-size: 22px; background: var(--c); color: #1a1a1a; padding: 4px 14px; border-radius: 999px; }
+  .concluida .selo { display: inline-block; }
+
+  .festa {
+    position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
+  }
+  .festa h2 {
+    margin: 0; font-size: clamp(26px, 11vw, 72px); font-weight: 900; color: #fff; letter-spacing: .02em; white-space: nowrap;
+    text-shadow: 0 0 20px var(--c), 0 4px 10px rgba(0,0,0,.8);
+    animation: festa 3.4s ease-out forwards;
+  }
+  .confete { position: fixed; top: 50%; left: 50%; width: 10px; height: 16px; border-radius: 2px; animation: voa 1.8s cubic-bezier(.1,.7,.3,1) forwards; }
+
+  @keyframes pulsa { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+  @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+  @keyframes festa { 0% { opacity: 0; transform: scale(.4) rotate(-8deg); } 15% { opacity: 1; transform: scale(1.1) rotate(2deg); } 25% { transform: scale(1); } 85% { opacity: 1; } 100% { opacity: 0; transform: scale(1.1); } }
+  @keyframes voa { to { transform: translate(var(--x), var(--y)) rotate(var(--r)); opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="meta escondida" id="meta">
+  <div class="txt" id="top-text"></div>
+  <div class="presente" id="presente"></div>
+  <div class="txt bottom" id="bottom-text"></div>
+  <div class="barra" id="barra"><div id="barra-fill"></div></div>
+  <span class="selo">✓ META CONCLUÍDA</span>
+  <div class="top" id="helper"></div>
+</div>
+<script type="module">
+  import { connectLive, escapeHtml, formatNumber } from '/shared/live-client.js';
+
+  // Link: /overlay/meta/<id>. Opções: ?barra=0 (sem barra) · ?cor=ff4f8b · ?tamanho=150 (presente em px)
+  const id = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop());
+  const params = new URLSearchParams(location.search);
+  if (params.get('cor')) document.body.style.setProperty('--c', `#${params.get('cor').replace('#', '')}`);
+  if (params.get('barra') === '0') document.getElementById('barra').style.display = 'none';
+  if (params.get('tamanho')) {
+    const px = Math.min(400, Math.max(40, Number(params.get('tamanho')) || 130));
+    Object.assign(document.getElementById('presente').style, { width: `${px}px`, height: `${px}px` });
+  }
+
+  const $ = (x) => document.getElementById(x);
+  let last = null;
+  let festaAte = 0;
+  let pendente = null;
+
+  function preencher(t, g) {
+    return escapeHtml(t)
+      .replaceAll('{atual}', formatNumber(g.count))
+      .replaceAll('{meta}', formatNumber(g.target))
+      .replaceAll('{faltam}', formatNumber(Math.max(0, g.target - g.count)))
+      .replaceAll('{presente}', escapeHtml(g.giftName))
+      .replaceAll('{vezes}', formatNumber(g.times));
+  }
+
+  function render(g) {
+    // Durante a comemoração, segura a atualização pra mostrar depois.
+    if (Date.now() < festaAte) { pendente = g; return; }
+    const box = $('meta');
+    const hide = !g || !g.enabled || (g.completed && g.onComplete === 'sumir');
+    box.classList.toggle('escondida', hide);
+    if (!g) return;
+    box.classList.toggle('concluida', g.completed && g.onComplete === 'manter');
+    $('top-text').innerHTML = preencher(g.textTop || '', g);
+    $('bottom-text').innerHTML = preencher(g.textBottom || '{atual}/{meta}', g);
+    $('barra-fill').style.width = `${Math.min(100, (g.count / g.target) * 100)}%`;
+    const img = g.giftImage ? `<img src="${escapeHtml(g.giftImage)}" alt="">` : '<span class="ph">🎁</span>';
+    if ($('presente').dataset.img !== g.giftImage) { $('presente').innerHTML = img; $('presente').dataset.img = g.giftImage; }
+    $('helper').innerHTML = g.showTop && g.top ? `👑 ${escapeHtml(g.top.nickname)} · ${formatNumber(g.top.count)}` : '';
+    if (last && last.count !== g.count) {
+      const b = $('bottom-text');
+      b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    }
+    last = g;
+  }
+
+  function festa(g) {
+    const DUR = 3400;
+    festaAte = Date.now() + DUR;
+    // Mostra a meta cheia durante a festa.
+    const cheia = { ...(last || g), ...g, count: g.target, completed: false };
+    $('bottom-text').innerHTML = preencher((cheia.textBottom || '{atual}/{meta}'), cheia);
+    $('barra-fill').style.width = '100%';
+    const f = document.createElement('div');
+    f.className = 'festa';
+    f.innerHTML = '<h2>META BATIDA! 🎉</h2>';
+    const cores = ['#ffc93c', '#ff4f8b', '#25f4ee', '#9a8cff', '#3ddc84', '#ffffff'];
+    for (let i = 0; i < 70; i++) {
+      const c = document.createElement('i');
+      c.className = 'confete';
+      const ang = Math.random() * Math.PI * 2, dist = 200 + Math.random() * 500;
+      c.style.cssText = `background:${cores[i % cores.length]};--x:${Math.cos(ang) * dist}px;--y:${Math.sin(ang) * dist}px;--r:${Math.random() * 720}deg;animation-delay:${Math.random() * 200}ms`;
+      f.appendChild(c);
+    }
+    document.body.appendChild(f);
+    setTimeout(() => {
+      f.remove();
+      festaAte = 0;
+      render(pendente || g);
+      pendente = null;
+    }, DUR);
+  }
+
+  const find = (list) => list.find((g) => g.id === id) || null;
+  connectLive({
+    onHello: ({ goals }) => render(find(goals || [])),
+    onGoals: (goals) => render(find(goals)),
+    onGoalComplete: (g) => { if (g.id === id) festa(g); },
+  });
+</script>
+</body>
+</html>

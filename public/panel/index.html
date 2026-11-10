@@ -8,8 +8,8 @@
 </head>
 <body>
 <header>
-  <h1>TikSoda <span class="badge">v0.3</span></h1>
-  <nav class="tabs"><a href="/painel/" class="active">Live e overlays</a><a href="/painel/acoes.html">Ações</a></nav>
+  <h1>TikSoda <span class="badge">v0.4</span></h1>
+  <nav class="tabs"><a href="/painel/" class="active">Live e overlays</a><a href="/painel/acoes.html">Ações</a><a href="/painel/metas.html">Metas</a></nav>
   <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
 </header>
 
@@ -41,6 +41,24 @@
       <div><h3>❤️ Likes</h3><ol id="rank-likes" class="rank"></ol></div>
       <div><h3>🪙 Coins</h3><ol id="rank-coins" class="rank"></ol></div>
     </div>
+  </section>
+
+  <section class="card">
+    <div class="feed-head">
+      <h2>Ranking mensal <span class="tag" id="month-label"></span></h2>
+      <button class="secondary small" id="btn-reset-month">Zerar mensal</button>
+    </div>
+    <form id="my-form" class="row" style="margin-top:8px">
+      <span class="hint" style="margin:0">Conta só as lives de</span>
+      <span class="at">@</span><input id="my-username" placeholder="seu_usuario" autocomplete="off">
+      <button class="secondary small" type="submit">Salvar</button>
+    </form>
+    <p class="hint">Zera sozinho todo dia 1º e no botão. O mês fechado vai pro histórico. Eventos de teste não contam.</p>
+    <div class="rankings">
+      <div><h3>❤️ Likes</h3><ol id="month-likes" class="rank"></ol></div>
+      <div><h3>🪙 Coins</h3><ol id="month-coins" class="rank"></ol></div>
+    </div>
+    <details class="history"><summary>Histórico</summary><div id="month-history"></div></details>
   </section>
 
   <section class="card">

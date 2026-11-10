@@ -29,6 +29,9 @@ Cada overlay tem o seu próprio link, mostrado no painel com botão de copiar.
 | Ranking de likes | `/overlay/ranking-likes` | pronto |
 | Ranking de coins | `/overlay/ranking-coins` | pronto |
 | Áudio e vídeo das ações | `/overlay/midia` | pronto |
+| Ranking mensal de likes | `/overlay/ranking-mensal-likes` | pronto |
+| Ranking mensal de coins | `/overlay/ranking-mensal-coins` | pronto |
+| Meta de presente | `/overlay/meta/<id>` (um link por meta) | pronto |
 
 ### Opções do feed de eventos
 
@@ -65,6 +68,23 @@ Os rankings contam a live atual. Zeram sozinhos quando você conecta numa live n
 
 Coloque este overlay em tela cheia no LIVE Studio. No navegador comum o som pode precisar de um clique pra liberar; no LIVE Studio e no OBS não precisa.
 
+## Metas de presente (aba Metas do painel)
+
+Escolha um presente e quantos quer receber. O overlay mostra o presente pulsando com a contagem (ex.: Rosa 3/10), uma barra e textos em cima e embaixo, que você personaliza com `{atual}`, `{meta}`, `{faltam}`, `{presente}` e `{vezes}`. A contagem sobe na hora, até durante combos.
+
+- Cada meta tem o seu link: `/overlay/meta/<id>`, mostrado na aba com prévia.
+- Ao bater: comemora com confete e escolhe entre recomeçar, ficar "concluída" ou sumir. Pode tocar um áudio ou vídeo da biblioteca.
+- Mostra quem mais ajudou (👑), botões de +1/−1, zerar, editar e ligar/desligar.
+- Opções no link: `?barra=0`, `?cor=ff4f8b`, `?tamanho=150`.
+
+## Ranking mensal
+
+Ranking de likes e de coins do mês, nos links `/overlay/ranking-mensal-likes` e `/overlay/ranking-mensal-coins` (padrão top 10).
+
+- Conta só quando você está conectado na **sua** live (o @ fica salvo no painel; na primeira conexão ele é preenchido sozinho).
+- Eventos de teste não contam.
+- Zera sozinho na virada do mês e no botão **Zerar mensal**. O mês fechado vai pro **Histórico** no painel.
+
 ## Ações (aba Ações do painel)
 
 Regras do tipo "quando acontecer X, tocar Y":
@@ -100,6 +120,8 @@ npm run dev   # reinicia sozinho ao salvar
 - `src/actions.js` regras de ações (presente/likes → mídia)
 - `src/media.js` biblioteca de mídia
 - `src/gifts.js` catálogo de presentes aprendido
+- `src/goals.js` metas de presente
+- `src/monthly.js` ranking mensal
 - `public/panel/` painel
 - `public/overlay/` um arquivo HTML por overlay
 - `data/` configurações, rankings, ações, presentes e mídias (fica fora do Git)

@@ -1,6 +1,6 @@
 // Cliente usado pelo painel e pelos overlays para receber eventos ao vivo.
 // Reconecta sozinho se o app for fechado e aberto de novo.
-export function connectLive({ onHello, onEvent, onStatus, onRankings, onPlay, onSocket } = {}) {
+export function connectLive({ onHello, onEvent, onStatus, onRankings, onMonthly, onGoals, onGoalComplete, onPlay, onSocket } = {}) {
   let retry = 500;
   function open() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -14,6 +14,9 @@ export function connectLive({ onHello, onEvent, onStatus, onRankings, onPlay, on
       else if (data.kind === 'status') onStatus?.(data.status);
       else if (data.kind === 'rankings') onRankings?.(data.rankings);
       else if (data.kind === 'play') onPlay?.(data.play);
+      else if (data.kind === 'monthly') onMonthly?.(data.rankings);
+      else if (data.kind === 'goals') onGoals?.(data.goals);
+      else if (data.kind === 'goal-complete') onGoalComplete?.(data.goal);
     };
     ws.onclose = () => {
       onSocket?.(false);

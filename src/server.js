@@ -11,6 +11,8 @@ import { Session } from './session.js';
 import { GiftCatalog } from './gifts.js';
 import { MediaLibrary } from './media.js';
 import { ActionRules } from './actions.js';
+import { GiftGoals } from './goals.js';
+import { MonthlyRanking } from './monthly.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_DIR = path.join(ROOT, 'data');
@@ -35,8 +37,11 @@ app.use('/shared', express.static(path.join(ROOT, 'public/shared')));
 app.use('/painel', express.static(path.join(ROOT, 'public/panel')));
 app.get('/', (_req, res) => res.redirect('/painel/'));
 
+// Cada meta de presente tem seu próprio link.
+app.get('/overlay/meta/:id', (_req, res) => res.sendFile(path.join(ROOT, 'public/overlay', 'meta.html')));
+
 app.get('/overlay/:slug', (req, res) => {
-  const ov = OVERLAYS.find((o) => o.slug === req.params.slug && o.ready);
+  const ov = OVERLAYS.find((o) => o.slug === req.params.slug && o.ready && !o.tab);
   if (!ov) return res.status(404).send('Overlay não encontrado.');
   res.sendFile(path.join(ROOT, 'public/overlay', `${ov.file || ov.slug}.html`));
 });
@@ -46,6 +51,9 @@ const session = new Session(DATA_DIR);
 const gifts = new GiftCatalog(DATA_DIR);
 const media = new MediaLibrary(DATA_DIR);
 const actions = new ActionRules(DATA_DIR, media);
+const goals = new GiftGoals(DATA_DIR, media);
+const monthly = new MonthlyRanking(DATA_DIR);
+let config = loadConfig();
 
 app.use('/midia', express.static(media.dir, { fallthrough: false }));
 const recent = [];
@@ -58,7 +66,7 @@ app.get('/api/status', (_req, res) => {
 app.post('/api/connect', async (req, res) => {
   const username = String(req.body?.username || '').replace(/^@/, '').trim();
   if (!username) return res.status(400).json({ error: 'Informe o @ da live.' });
-  saveConfig({ username });
+  config = saveConfig({ username });
   // Responde logo; o resultado chega pelo WebSocket como 'status'.
   res.json({ ok: true });
   live.connect(username).catch((err) => console.error(err));
@@ -75,6 +83,35 @@ app.post('/api/rankings/reset', (_req, res) => {
   session.reset(live.status.roomId || '');
   res.json({ ok: true });
 });
+
+// ---------- ranking mensal ----------
+// Conta só quando você está conectado na SUA live (o @ salvo em "myUsername").
+const isMyLive = () => !!config.myUsername && live.status.state === 'conectado'
+  && live.status.username.toLowerCase() === config.myUsername.toLowerCase();
+
+app.get('/api/mensal', (_req, res) => res.json({ ...monthly.rankings(), history: monthly.history(), myUsername: config.myUsername || '' }));
+
+app.post('/api/mensal/reset', (_req, res) => {
+  monthly.reset();
+  res.json({ ok: true });
+});
+
+app.post('/api/mensal/meu-usuario', (req, res) => {
+  const myUsername = String(req.body?.username || '').replace(/^@/, '').trim();
+  config = saveConfig({ myUsername });
+  res.json({ ok: true, myUsername });
+});
+
+// ---------- metas de presente ----------
+app.get('/api/metas', (_req, res) => res.json(goals.publicList()));
+const goalRoute = (fn) => (req, res) => {
+  try { res.json(fn(req) ?? { ok: true }); } catch (err) { res.status(400).json({ error: err.message }); }
+};
+app.post('/api/metas', goalRoute((req) => goals.publicGoal(goals.create(req.body))));
+app.put('/api/metas/:id', goalRoute((req) => goals.publicGoal(goals.update(req.params.id, req.body))));
+app.delete('/api/metas/:id', goalRoute((req) => { goals.remove(req.params.id); }));
+app.post('/api/metas/:id/zerar', goalRoute((req) => goals.publicGoal(goals.reset(req.params.id))));
+app.post('/api/metas/:id/ajustar', goalRoute((req) => goals.publicGoal(goals.adjust(req.params.id, req.body?.amount))));
 
 // ---------- presentes, mídia e ações ----------
 app.get('/api/gifts', (_req, res) => res.json(gifts.list()));
@@ -157,6 +194,8 @@ function publish(event) {
   const likesBefore = session.data.totals.likes;
   if (!session.record(event)) return;
   gifts.learn(event);
+  goals.handle(event);
+  if (isMyLive() && !event.simulated) monthly.record(event);
   for (const play of actions.match(event, likesBefore, session.data.totals.likes)) {
     broadcast({ kind: 'play', play });
   }
@@ -169,17 +208,33 @@ function publish(event) {
 }
 
 wss.on('connection', (socket) => {
-  socket.send(JSON.stringify({ kind: 'hello', status: live.status, recent, rankings: session.rankings() }));
+  socket.send(JSON.stringify({
+    kind: 'hello', status: live.status, recent,
+    rankings: session.rankings(), monthly: monthly.rankings(), goals: goals.publicList(),
+  }));
 });
 
 live.on('event', publish);
 live.on('status', (status) => {
-  if (status.state === 'conectado') session.ensureRoom(status.roomId);
+  if (status.state === 'conectado') {
+    session.ensureRoom(status.roomId);
+    // Primeira conexão bem-sucedida: assume que é a sua live (dá pra trocar no painel).
+    if (!config.myUsername) config = saveConfig({ myUsername: status.username });
+  }
   broadcast({ kind: 'status', status });
 });
 session.on('rankings', (rankings) => broadcast({ kind: 'rankings', rankings }));
+monthly.on('rankings', (rankings) => broadcast({ kind: 'monthly', rankings }));
+goals.on('change', () => broadcast({ kind: 'goals', goals: goals.publicList() }));
+goals.on('complete', (g) => {
+  broadcast({ kind: 'goal-complete', goal: goals.publicGoal(g) });
+  if (g.media) {
+    const fake = { id: `meta-${g.id}`, media: g.media, name: g.name || `Meta ${g.giftName}` };
+    broadcast({ kind: 'play', play: actions.play(fake, null, 'meta batida') });
+  }
+});
 
-const shutdown = () => { session.flush(); process.exit(0); };
+const shutdown = () => { session.flush(); monthly.flush(); try { goals.store.save(); } catch {} process.exit(0); };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 

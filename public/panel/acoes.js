@@ -129,7 +129,7 @@ function resetForm() {
   $('name').value = '';
   chosenGift = null;
   $('gift-search').value = '';
-  $('per-unit').checked = false;
+  $('repeat').value = 'uma';
   $('likes-mode').value = 'cada';
   $('likes-amount').value = 1000;
   $('volume').value = 100; $('volume-val').textContent = '100%';
@@ -149,7 +149,7 @@ $('form').addEventListener('submit', async (e) => {
   const body = {
     name: $('name').value,
     trigger: type === 'gift'
-      ? { type, giftId: chosenGift.giftId, giftName: chosenGift.giftName, perUnit: $('per-unit').checked }
+      ? { type, giftId: chosenGift.giftId, giftName: chosenGift.giftName, repeat: $('repeat').value }
       : { type, mode: $('likes-mode').value, amount: Number($('likes-amount').value) },
     media: { file: $('media-file').value, volume: Number($('volume').value) },
   };
@@ -165,7 +165,8 @@ $('form').addEventListener('submit', async (e) => {
 // ---------- lista de ações ----------
 function describeRule(r) {
   const t = r.trigger;
-  if (t.type === 'gift') return `Ao receber <b>${escapeHtml(t.giftName)}</b>${t.perUnit ? ' (repete pela quantidade)' : ''}`;
+  const REPEAT_TXT = { fila: ' (repete pela quantidade)', cortar: ' (corta e repete a cada presente)' };
+  if (t.type === 'gift') return `Ao receber <b>${escapeHtml(t.giftName)}</b>${REPEAT_TXT[t.repeat || (t.perUnit ? 'fila' : 'uma')] || ''}`;
   return t.mode === 'meta' ? `Ao chegar em <b>${formatNumber(t.amount)} likes</b> na live` : `A cada <b>${formatNumber(t.amount)} likes</b>`;
 }
 
@@ -208,7 +209,7 @@ $('rules').addEventListener('click', async (e) => {
       document.querySelector(`input[name=trigger][value=${r.trigger.type}]`).checked = true;
       if (r.trigger.type === 'gift') {
         chosenGift = { giftId: r.trigger.giftId, giftName: r.trigger.giftName };
-        $('per-unit').checked = r.trigger.perUnit;
+        $('repeat').value = r.trigger.repeat || (r.trigger.perUnit ? 'fila' : 'uma');
         $('gift-search').value = '';
       } else {
         $('likes-mode').value = r.trigger.mode;

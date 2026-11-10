@@ -69,7 +69,10 @@ Coloque este overlay em tela cheia no LIVE Studio. No navegador comum o som pode
 
 Regras do tipo "quando acontecer X, tocar Y":
 
-- **Presente**: ao receber um presente específico, toca um áudio, vídeo ou GIF. Dá pra repetir pela quantidade (5 rosas = 5 vezes, até 10).
+- **Presente**: ao receber um presente específico, toca um áudio, vídeo ou GIF. Quando mandam vários de uma vez, dá pra escolher:
+  - tocar uma vez só (no fim do combo);
+  - repetir pela quantidade, um depois do outro (até 10);
+  - **cortar e repetir**: cada presente reinicia a mídia na hora, inclusive durante o combo (fica picotado de propósito).
 - **Meta de likes**: a cada N likes na live, ou uma vez ao chegar em N likes.
 
 Envie os arquivos na **Biblioteca de mídia** da mesma aba; eles ficam em `data/midia/`. Cada ação tem botão de **Testar**, liga/desliga, editar e apagar.
@@ -80,7 +83,7 @@ A lista oficial completa de presentes do TikTok só vem pelo plano pago do servi
 
 ## Testar sem estar ao vivo
 
-No painel, a seção **Testar sem estar ao vivo** gera eventos falsos (comentário, presente, likes, follow, share). Eles aparecem no painel e em todos os overlays abertos.
+No painel, a seção **Testar sem estar ao vivo** gera eventos falsos (comentário, presente, combo de rosas, likes, follow, share). Eles aparecem no painel e em todos os overlays abertos.
 
 ## Para desenvolver
 

@@ -35,7 +35,13 @@
         <input id="gift-search" placeholder="Buscar presente pelo nome…" autocomplete="off">
         <div id="gift-grid" class="gift-grid"></div>
         <p class="hint" id="gift-empty"></p>
-        <label class="check"><input type="checkbox" id="per-unit"> Repetir pela quantidade (ex.: 5 rosas tocam 5 vezes, até 10)</label>
+        <label>Quando mandarem vários de uma vez
+          <select id="repeat">
+            <option value="uma">Tocar uma vez só (no fim do combo)</option>
+            <option value="fila">Repetir pela quantidade, um depois do outro (até 10)</option>
+            <option value="cortar">Cortar e repetir: cada presente reinicia na hora, até no combo</option>
+          </select>
+        </label>
       </div>
 
       <div id="likes-fields" class="field" hidden>

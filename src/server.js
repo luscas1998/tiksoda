@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { WebSocketServer } from 'ws';
 import { LiveManager } from './live.js';
-import { simulate } from './simulate.js';
+import { simulate, simulateCombo } from './simulate.js';
 import { OVERLAYS } from './overlays.js';
 import { Session } from './session.js';
 import { GiftCatalog } from './gifts.js';
@@ -114,7 +114,8 @@ app.delete('/api/acoes/:id', (req, res) => {
 app.post('/api/acoes/:id/testar', (req, res) => {
   const rule = actions.list().find((r) => r.id === req.params.id);
   if (!rule) return res.status(404).json({ error: 'Regra não encontrada.' });
-  broadcast({ kind: 'play', play: actions.play(rule, null, 'teste') });
+  const extra = rule.trigger.repeat === 'cortar' ? { cut: true, times: 1 } : {};
+  broadcast({ kind: 'play', play: actions.play(rule, null, 'teste', extra) });
   res.json({ ok: true });
 });
 
@@ -123,6 +124,11 @@ app.post('/api/midia/:file/tocar', (req, res) => {
   if (!media.exists(req.params.file)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
   const fake = { id: 'teste', media: { file: req.params.file, volume: 100 }, name: req.params.file };
   broadcast({ kind: 'play', play: actions.play(fake, null, 'teste') });
+  res.json({ ok: true });
+});
+
+app.post('/api/test/combo', (_req, res) => {
+  simulateCombo(publish);
   res.json({ ok: true });
 });
 

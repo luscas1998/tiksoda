@@ -85,8 +85,59 @@
     if (p) tocar(p);
   }
 
+  // Modo "cortar e repetir": cada presente reinicia a mídia da ação na hora,
+  // fora da fila. Combos ficam "picotados" de propósito.
+  const cortes = new Map(); // ruleId -> { el, slot, timer }
+  const CORTE_INTERVALO_MS = 180;
+
+  function criarCorte(p) {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    const el = p.kind === 'video' ? document.createElement('video') : p.kind === 'audio' ? document.createElement('audio') : document.createElement('img');
+    if (p.kind === 'video') el.playsInline = true;
+    el.src = p.url;
+    if (p.kind !== 'imagem') {
+      el.volume = PREVIA ? 0 : (p.volume / 100) * VOLUME;
+      el.muted = PREVIA;
+      el.onended = () => fecharCorte(p.ruleId);
+      el.onerror = () => fecharCorte(p.ruleId);
+    }
+    slot.appendChild(el);
+    document.body.appendChild(slot);
+    const c = { el, slot, timer: null, kind: p.kind };
+    cortes.set(p.ruleId, c);
+    return c;
+  }
+
+  function fecharCorte(ruleId) {
+    const c = cortes.get(ruleId);
+    if (!c) return;
+    clearTimeout(c.timer);
+    c.slot.remove();
+    cortes.delete(ruleId);
+  }
+
+  function bater(p) {
+    const c = cortes.get(p.ruleId) || criarCorte(p);
+    clearTimeout(c.timer);
+    if (c.kind === 'imagem') {
+      c.el.style.animation = 'none'; void c.el.offsetWidth; c.el.style.animation = '';
+      c.timer = setTimeout(() => fecharCorte(p.ruleId), IMAGEM_MS);
+      return;
+    }
+    c.el.currentTime = 0;
+    c.el.play().catch(() => { ativar.classList.add('on'); c.el.muted = true; c.el.play().catch(() => {}); });
+    c.timer = setTimeout(() => fecharCorte(p.ruleId), MAX_MS);
+  }
+
+  function cortar(p) {
+    const vezes = Math.max(1, Math.min(10, p.times || 1));
+    for (let i = 0; i < vezes; i++) setTimeout(() => bater(p), i * CORTE_INTERVALO_MS);
+  }
+
   connectLive({
     onPlay: (p) => {
+      if (p.cut) return cortar(p);
       if (fila.length > 50) return; // proteção contra chuva de presentes
       fila.push(p);
       if (FILA) proximo(); else tocar(fila.shift());

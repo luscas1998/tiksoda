@@ -5,15 +5,37 @@ import { mediaKind } from './media.js';
 // Regras do tipo "quando acontecer X, tocar a mídia Y".
 //
 // Gatilhos:
-//   { type: 'gift',  giftId, giftName, perUnit }   presente específico
+//   { type: 'gift',  giftId, giftName, repeat }    presente específico
+//       repeat: 'uma'    toca uma vez por envio (no fim do combo)
+//               'fila'   toca uma vez por presente, um depois do outro (até 10)
+//               'cortar' cada presente reinicia a mídia na hora, inclusive durante o combo
 //   { type: 'likes', mode: 'cada', amount }         a cada N likes na live
 //   { type: 'likes', mode: 'meta', amount }         uma vez, ao chegar em N likes na live
 //
 // Mídia: { file, volume (0-100) }
+const REPEATS = new Set(['uma', 'fila', 'cortar']);
+function normalizeRepeat(t) {
+  if (REPEATS.has(t.repeat)) return t.repeat;
+  return t.perUnit ? 'fila' : 'uma'; // regras antigas
+}
+
 export class ActionRules {
   constructor(dataDir, media) {
     this.store = new JsonStore(dataDir, 'acoes.json', { rules: [] });
     this.media = media;
+    // Quantos presentes de cada combo já foram contados, pra saber quantos são novos.
+    this.combos = new Map();
+  }
+
+  // Quantos presentes novos chegaram neste evento (combos chegam em vários eventos).
+  comboDelta(ev) {
+    const key = `${ev.user?.id}|${ev.giftId}|${ev.groupId}`;
+    const before = this.combos.get(key) || 0;
+    const delta = Math.max(0, ev.repeatCount - before);
+    if (ev.streaking) this.combos.set(key, ev.repeatCount);
+    else this.combos.delete(key);
+    if (this.combos.size > 500) this.combos.clear();
+    return delta;
   }
 
   list() { return this.store.data.rules; }
@@ -22,7 +44,7 @@ export class ActionRules {
     const t = input?.trigger || {};
     const trigger = t.type === 'likes'
       ? { type: 'likes', mode: t.mode === 'meta' ? 'meta' : 'cada', amount: Math.max(1, Math.floor(Number(t.amount) || 0)) }
-      : { type: 'gift', giftId: String(t.giftId || '').trim(), giftName: String(t.giftName || '').trim(), perUnit: !!t.perUnit };
+      : { type: 'gift', giftId: String(t.giftId || '').trim(), giftName: String(t.giftName || '').trim(), repeat: normalizeRepeat(t) };
     if (trigger.type === 'gift' && !trigger.giftId && !trigger.giftName) throw new Error('Escolha o presente.');
     if (trigger.type === 'likes' && !(trigger.amount > 0)) throw new Error('Informe a quantidade de likes.');
     const file = String(input?.media?.file || '');
@@ -56,8 +78,9 @@ export class ActionRules {
     this.store.save();
   }
 
-  play(rule, user, reason) {
+  play(rule, user, reason, extra = {}) {
     return {
+      ...extra,
       ruleId: rule.id,
       file: rule.media.file,
       url: `/midia/${encodeURIComponent(rule.media.file)}`,
@@ -72,14 +95,23 @@ export class ActionRules {
   // Recebe um evento e os totais de likes antes/depois; devolve o que tocar.
   match(ev, likesBefore, likesAfter) {
     const out = [];
+    const delta = ev.type === 'gift' ? this.comboDelta(ev) : null;
     for (const rule of this.store.data.rules) {
       if (!rule.enabled) continue;
       const t = rule.trigger;
-      if (t.type === 'gift' && ev.type === 'gift' && !ev.streaking) {
+      if (t.type === 'gift' && ev.type === 'gift') {
         const sameId = t.giftId && t.giftId === ev.giftId;
         const sameName = !t.giftId && t.giftName && t.giftName.toLowerCase() === String(ev.giftName).toLowerCase();
         if (!sameId && !sameName) continue;
-        const times = t.perUnit ? Math.min(ev.repeatCount, 10) : 1;
+        const repeat = normalizeRepeat(t);
+        if (repeat === 'cortar') {
+          // Reage a cada pedaço do combo, na hora.
+          const n = delta ?? 0;
+          if (n > 0) out.push(this.play(rule, ev.user, `${ev.repeatCount}x ${ev.giftName}`, { cut: true, times: Math.min(n, 10) }));
+          continue;
+        }
+        if (ev.streaking) continue; // os outros modos esperam o combo acabar
+        const times = repeat === 'fila' ? Math.min(ev.repeatCount, 10) : 1;
         for (let i = 0; i < times; i++) out.push(this.play(rule, ev.user, `${ev.repeatCount}x ${ev.giftName}`));
       }
       if (t.type === 'likes' && ev.type === 'like' && likesAfter > likesBefore) {

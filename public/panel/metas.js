@@ -1,5 +1,5 @@
 import { connectLive, escapeHtml, formatNumber } from '/shared/live-client.js';
-import { createGiftPicker } from './gift-picker.js';
+import { createGiftPicker, setupGiftRefresh } from './gift-picker.js';
 
 const $ = (id) => document.getElementById(id);
 const api = async (url, opts = {}) => {
@@ -168,6 +168,7 @@ async function loadGoals() { goals = await api('/api/metas'); renderGoals(); }
 const info = await api('/api/status');
 port = info.port;
 await Promise.all([loadMedia(), loadGoals(), api('/api/gifts').then((g) => picker.setGifts(g))]);
+setupGiftRefresh($('gift-refresh'), $('gift-refresh-msg'), () => api('/api/gifts').then((g) => picker.setGifts(g)));
 setInterval(() => api('/api/gifts').then((g) => picker.setGifts(g)).catch(() => {}), 30000);
 
 connectLive({

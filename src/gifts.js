@@ -28,6 +28,19 @@ export class GiftCatalog {
     }
   }
 
+  // Junta a lista oficial baixada do TikTok com o que já foi aprendido.
+  importMany(list) {
+    let added = 0;
+    for (const g of list) {
+      if (!g.id || !g.name) continue;
+      if (!this.store.data.gifts[g.id]) added++;
+      this.store.data.gifts[g.id] = { ...this.store.data.gifts[g.id], ...g };
+    }
+    this.store.data.importedAt = Date.now();
+    this.store.save();
+    return { added, total: Object.keys(this.store.data.gifts).length };
+  }
+
   list() {
     return Object.values(this.store.data.gifts).sort((a, b) => a.coins - b.coins || a.name.localeCompare(b.name));
   }

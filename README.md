@@ -99,7 +99,11 @@ Envie os arquivos na **Biblioteca de mídia** da mesma aba; eles ficam em `data/
 
 ### Lista de presentes
 
-A lista oficial completa de presentes do TikTok só vem pelo plano pago do serviço de assinatura. Por isso o app aprende sozinho: todo presente que chega numa live conectada (sua ou de outro criador) fica salvo em `data/gifts.json`, com nome, valor e imagem. Dica: conecte numa live grande por alguns minutos pra encher a lista. Também dá pra digitar o nome exato do presente.
+Nas abas Ações e Metas, o botão **⟳ Atualizar lista do TikTok** baixa a lista oficial de presentes, com ícone, valor e ID. Ele usa a live em que você está conectado; se não estiver, pede o @ de alguém que esteja ao vivo.
+
+Primeiro tenta um pedido direto ao TikTok. Se não der, abre a página da live num Edge ou Chrome invisível do seu PC e pega a lista que a própria página baixa. Pra usar outro navegador, defina a variável `TIKSODA_BROWSER` com o caminho do executável.
+
+O app também continua aprendendo sozinho: todo presente que chega numa live conectada entra na lista (`data/gifts.json`).
 
 ## Testar sem estar ao vivo
 
@@ -119,7 +123,8 @@ npm run dev   # reinicia sozinho ao salvar
 - `src/session.js` rankings e totais da live
 - `src/actions.js` regras de ações (presente/likes → mídia)
 - `src/media.js` biblioteca de mídia
-- `src/gifts.js` catálogo de presentes aprendido
+- `src/gifts.js` catálogo de presentes
+- `src/giftImport.js` baixa a lista oficial de presentes do TikTok
 - `src/goals.js` metas de presente
 - `src/monthly.js` ranking mensal
 - `public/panel/` painel

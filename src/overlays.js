@@ -2,6 +2,7 @@
 // fonte "Link" (navegador) no TikTok LIVE Studio.
 // `ready: false` aparece no painel como "em breve".
 // `file` permite que dois overlays usem o mesmo HTML (ex.: os dois rankings).
+// `themes: true` mostra o seletor de tema (Escuro, Neon, Claro, Minimalista) no painel.
 
 export const OVERLAYS = [
   {
@@ -11,6 +12,7 @@ export const OVERLAYS = [
     size: '400 x 600',
     options: 'max=6 · tempo=20 · tipos=chat,gift,follow,share',
     ready: true,
+    themes: true,
   },
   {
     slug: 'alertas',
@@ -19,50 +21,81 @@ export const OVERLAYS = [
     size: '800 x 300',
     options: 'tipos=gift,follow,share · min=10 (coins) · tempo=5 (segundos)',
     ready: true,
+    themes: true,
   },
   {
     slug: 'ranking-likes',
     file: 'ranking',
-    options: 'top=5 · titulo=Meu top · fundo=0 · cor=ff4f8b',
+    options: 'top=5 · titulo=Meu top · fundo=0 · cor=ff4f8b · coroa=0',
     name: 'Ranking de likes',
     description: 'Top quem mais curtiu na live.',
     size: '400 x 500',
     ready: true,
+    themes: true,
   },
   {
     slug: 'ranking-coins',
     file: 'ranking',
-    options: 'top=5 · titulo=Meu top · fundo=0 · cor=ffc93c',
+    options: 'top=5 · titulo=Meu top · fundo=0 · cor=ffc93c · coroa=0',
     name: 'Ranking de coins',
     description: 'Top quem mais mandou presentes, em coins.',
     size: '400 x 500',
     ready: true,
+    themes: true,
   },
   {
     slug: 'ranking-mensal-likes',
     file: 'ranking',
-    options: 'top=10 · titulo=Top do mês · fundo=0 · cor=ff4f8b',
+    options: 'top=10 · titulo=Top do mês · fundo=0 · cor=ff4f8b · coroa=0',
     name: 'Ranking mensal de likes',
     description: 'Top likes do mês. Conta só as suas lives; zera dia 1º ou no botão.',
     size: '400 x 700',
     ready: true,
+    themes: true,
   },
   {
     slug: 'ranking-mensal-coins',
     file: 'ranking',
-    options: 'top=10 · titulo=Top do mês · fundo=0 · cor=ffc93c',
+    options: 'top=10 · titulo=Top do mês · fundo=0 · cor=ffc93c · coroa=0',
     name: 'Ranking mensal de coins',
     description: 'Top presentes do mês, em coins. Conta só as suas lives; zera dia 1º ou no botão.',
     size: '400 x 700',
     ready: true,
+    themes: true,
+  },
+  {
+    slug: 'chat',
+    name: 'Chat',
+    description: 'Os comentários da live na tela, com foto e nome colorido.',
+    size: '420 x 600',
+    options: 'max=10 · tempo=30 · tamanho=22 · avatar=0 · comandos=0 (esconde !comandos) · presentes=1',
+    ready: true,
+    themes: true,
   },
   {
     slug: 'metas',
-    name: 'Metas de presente',
-    description: 'Presente pulsando com a contagem (ex.: Rosa 3/10). Cada meta tem o seu link, criado na aba Metas.',
+    name: 'Metas',
+    description: 'Metas de presente, likes, seguidores, shares ou coins, em 5 modelos (presente pulsando, barra, círculo, número, copo). Cada meta tem o seu link, criado na aba Metas.',
     size: '400 x 400',
     tab: '/painel/metas.html',
     ready: true,
+  },
+  {
+    slug: 'roleta',
+    name: 'Roleta',
+    description: 'Roleta que gira por comando no chat, por presente ou pelo painel. Cada roleta tem o seu link, criado na aba Roleta.',
+    size: '500 x 600',
+    tab: '/painel/roleta.html',
+    ready: true,
+  },
+  {
+    slug: 'tts',
+    name: 'TTS (leitura de comentários)',
+    description: 'Fala os comentários em voz alta e mostra um balão com quem escreveu. Configure na aba TTS.',
+    size: '800 x 200',
+    options: 'legenda=0 (só a voz) · volume=80',
+    ready: true,
+    themes: true,
   },
   {
     slug: 'midia',

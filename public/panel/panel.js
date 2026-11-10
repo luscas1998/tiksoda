@@ -1,4 +1,5 @@
 import { connectLive, escapeHtml, initials, describe, formatNumber } from '/shared/live-client.js';
+import { themeSelect, withTheme, themeOf } from './temas.js';
 
 const $ = (id) => document.getElementById(id);
 const STATE_LABEL = {
@@ -60,6 +61,7 @@ function renderOverlays(list, port) {
         <b>${escapeHtml(o.name)}</b> ${o.ready ? '' : '<span class="tag">em breve</span>'}
         <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span>${o.options && o.ready && !o.tab ? `<span class="size">Opções no link: <code>${escapeHtml(o.options)}</code></span>` : ''}</p>
         ${o.tab ? `<a class="button secondary" href="${o.tab}">Abrir aba ${escapeHtml(o.name)}</a>` : ''}
+        ${o.themes ? `<div class="theme-row">Tema ${themeSelect('')}</div>` : ''}
         ${o.ready && !o.tab ? `<div class="row link-row">
           <input class="ov-link" value="${base}/overlay/${o.slug}" spellcheck="false" title="Dá pra editar: junte opções no fim, ex. ?top=3">
           <button class="secondary" data-copy>Copiar</button>
@@ -70,6 +72,15 @@ function renderOverlays(list, port) {
     </li>`).join('');
 }
 
+// Escolher o tema muda o link (?tema=...) e a prévia.
+document.addEventListener('change', (e) => {
+  const sel = e.target.closest('.overlays .theme-select');
+  if (!sel) return;
+  const input = sel.closest('li').querySelector('.ov-link');
+  input.value = withTheme(input.value, sel.value);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+});
+
 // Atualiza a prévia e o botão Abrir quando o link é editado.
 let linkTimer;
 document.addEventListener('input', (e) => {
@@ -78,6 +89,8 @@ document.addEventListener('input', (e) => {
   clearTimeout(linkTimer);
   linkTimer = setTimeout(() => {
     const li = input.closest('li');
+    const sel = li.querySelector('.theme-select');
+    if (sel && sel.value !== themeOf(input.value)) sel.value = themeOf(input.value);
     let path, previewPath;
     try {
       const u = new URL(input.value);
@@ -161,6 +174,14 @@ $('my-form').addEventListener('submit', async (e) => {
 
 $('btn-reset').addEventListener('click', () => {
   if (confirm('Zerar os rankings de likes e coins desta live?')) fetch('/api/rankings/reset', { method: 'POST' });
+});
+
+$('test-comment').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const comment = $('test-comment-text').value.trim();
+  if (!comment) return;
+  fetch('/api/test/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ comment }) });
+  $('test-comment-text').value = '';
 });
 
 $('btn-disconnect').addEventListener('click', () => fetch('/api/disconnect', { method: 'POST' }));

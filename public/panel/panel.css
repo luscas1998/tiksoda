@@ -115,3 +115,7 @@ button.small { padding: 5px 10px; font-size: 13px; }
 .history .mes { margin-top: 10px; }
 .history .mes b { display: block; margin-bottom: 4px; }
 #my-username { max-width: 200px; }
+
+.theme-row { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.theme-row select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; }
+[hidden] { display: none !important; }

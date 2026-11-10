@@ -1,0 +1,9 @@
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.opts li { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.opts input[type="color"] { width: 38px; height: 36px; padding: 2px; flex: none; border-radius: 8px; }
+.opts .o-label { flex: 2; min-width: 120px; }
+.opts .o-weight { width: 70px; flex: none; }
+.opts select { flex: 1; min-width: 120px; }
+.history-list { font-size: 13px; color: var(--muted); margin: 0; padding-left: 18px; max-height: 120px; overflow-y: auto; }
+.history-list b { color: var(--text); }

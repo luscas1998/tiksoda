@@ -14,6 +14,8 @@ import { ActionRules } from './actions.js';
 import { GiftGoals } from './goals.js';
 import { MonthlyRanking } from './monthly.js';
 import { importTikTokGifts } from './giftImport.js';
+import { TextToSpeech } from './tts.js';
+import { Wheels } from './wheels.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_DIR = path.join(ROOT, 'data');
@@ -40,6 +42,8 @@ app.get('/', (_req, res) => res.redirect('/painel/'));
 
 // Cada meta de presente tem seu próprio link.
 app.get('/overlay/meta/:id', (_req, res) => res.sendFile(path.join(ROOT, 'public/overlay', 'meta.html')));
+// Cada roleta também.
+app.get('/overlay/roleta/:id', (_req, res) => res.sendFile(path.join(ROOT, 'public/overlay', 'roleta.html')));
 
 app.get('/overlay/:slug', (req, res) => {
   const ov = OVERLAYS.find((o) => o.slug === req.params.slug && o.ready && !o.tab);
@@ -54,9 +58,15 @@ const media = new MediaLibrary(DATA_DIR);
 const actions = new ActionRules(DATA_DIR, media);
 const goals = new GiftGoals(DATA_DIR, media);
 const monthly = new MonthlyRanking(DATA_DIR);
+const tts = new TextToSpeech(DATA_DIR);
+const wheels = new Wheels(DATA_DIR, media);
 let config = loadConfig();
 
+// Quantos coins a pessoa já mandou nesta live (pra regras "só quem mandou presente").
+const coinsOf = (user) => session.data.users[user?.id || user?.username]?.coins || 0;
+
 app.use('/midia', express.static(media.dir, { fallthrough: false }));
+app.use('/tts-audio', express.static(tts.dir, { fallthrough: false }));
 const recent = [];
 const RECENT_MAX = 50;
 
@@ -145,8 +155,11 @@ app.post('/api/midia', express.raw({ type: () => true, limit: '300mb' }), (req, 
 });
 
 app.delete('/api/midia/:file', (req, res) => {
-  const used = actions.list().some((r) => r.media.file === req.params.file);
-  if (used) return res.status(400).json({ error: 'Essa mídia está sendo usada numa ação. Apague ou troque a ação antes.' });
+  const f = req.params.file;
+  const usedBy = actions.list().some((r) => r.media.file === f) ? 'numa ação'
+    : goals.list().some((g) => g.media?.file === f) ? 'numa meta'
+      : wheels.list().some((w) => w.options.some((o) => o.media?.file === f)) ? 'numa roleta' : '';
+  if (usedBy) return res.status(400).json({ error: `Essa mídia está sendo usada ${usedBy}. Troque ou apague antes.` });
   try { media.remove(req.params.file); res.json({ ok: true }); }
   catch (err) { res.status(400).json({ error: err.message }); }
 });
@@ -182,6 +195,35 @@ app.post('/api/midia/:file/tocar', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- TTS ----------
+app.get('/api/tts', (_req, res) => res.json({ config: tts.config, windows: tts.isWindows }));
+app.put('/api/tts', (req, res) => {
+  try { res.json({ config: tts.update(req.body) }); } catch (err) { res.status(400).json({ error: err.message }); }
+});
+app.get('/api/tts/vozes', async (_req, res) => {
+  try { res.json(await tts.voices()); } catch (err) { res.status(500).json({ error: `Não consegui listar as vozes do Windows: ${err.message}` }); }
+});
+app.post('/api/tts/testar', (req, res) => {
+  const text = String(req.body?.text || '').trim() || 'Olá! Este é um teste da voz do TikSoda.';
+  res.json(tts.say(text, null));
+});
+app.post('/api/tts/:acao(pular|limpar)', (req, res) => {
+  broadcast({ kind: 'tts-control', action: req.params.acao });
+  res.json({ ok: true });
+});
+
+// ---------- roletas ----------
+const wheelPublic = (w) => ({ ...w, history: wheels.recent(w.id) });
+app.get('/api/roletas', (_req, res) => res.json(wheels.list().map(wheelPublic)));
+app.post('/api/roletas', goalRoute((req) => wheels.create(req.body)));
+app.put('/api/roletas/:id', goalRoute((req) => wheels.update(req.params.id, req.body)));
+app.delete('/api/roletas/:id', goalRoute((req) => { wheels.remove(req.params.id); }));
+app.post('/api/roletas/:id/girar', goalRoute((req) => {
+  const spin = wheels.spin(req.params.id, null, 'painel');
+  if (!spin) throw new Error('Fila cheia: espere os giros acabarem.');
+  return spin;
+}));
+
 app.post('/api/test/combo', (_req, res) => {
   simulateCombo(publish);
   res.json({ ok: true });
@@ -189,7 +231,7 @@ app.post('/api/test/combo', (_req, res) => {
 
 app.post('/api/test/:type', (req, res) => {
   try {
-    publish(simulate(req.params.type));
+    publish(simulate(req.params.type, req.body || {}));
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -213,6 +255,8 @@ function publish(event) {
   if (!session.record(event)) return;
   gifts.learn(event);
   goals.handle(event);
+  tts.handle(event, coinsOf);
+  wheels.handle(event, coinsOf);
   if (isMyLive() && !event.simulated) monthly.record(event);
   for (const play of actions.match(event, likesBefore, session.data.totals.likes)) {
     broadcast({ kind: 'play', play });
@@ -228,14 +272,16 @@ function publish(event) {
 wss.on('connection', (socket) => {
   socket.send(JSON.stringify({
     kind: 'hello', status: live.status, recent,
-    rankings: session.rankings(), monthly: monthly.rankings(), goals: goals.publicList(),
+    rankings: session.rankings(), monthly: monthly.rankings(), goals: goals.publicList(), wheels: wheels.list(),
   }));
 });
 
 live.on('event', publish);
 live.on('status', (status) => {
   if (status.state === 'conectado') {
+    const newLive = status.roomId && session.data.roomId !== status.roomId;
     session.ensureRoom(status.roomId);
+    if (newLive) goals.resetForNewLive();
     // Primeira conexão bem-sucedida: assume que é a sua live (dá pra trocar no painel).
     if (!config.myUsername) config = saveConfig({ myUsername: status.username });
   }
@@ -244,6 +290,17 @@ live.on('status', (status) => {
 session.on('rankings', (rankings) => broadcast({ kind: 'rankings', rankings }));
 monthly.on('rankings', (rankings) => broadcast({ kind: 'monthly', rankings }));
 goals.on('change', () => broadcast({ kind: 'goals', goals: goals.publicList() }));
+tts.on('speak', (item) => broadcast({ kind: 'tts', item }));
+tts.on('log', (log) => broadcast({ kind: 'tts-log', log: { ...log, at: Date.now() } }));
+wheels.on('change', (list) => broadcast({ kind: 'wheels', wheels: list }));
+wheels.on('spin', (spin, option, w) => {
+  broadcast({ kind: 'wheel-spin', spin });
+  if (option.media) {
+    // Toca a mídia da opção quando a roleta parar.
+    const fake = { id: `roleta-${w.id}`, media: option.media, name: `${w.name || 'Roleta'}: ${option.label}` };
+    setTimeout(() => broadcast({ kind: 'play', play: actions.play(fake, spin.user, `roleta: ${option.label}`) }), Math.max(0, spin.startAt + spin.spinMs - Date.now()));
+  }
+});
 goals.on('complete', (g) => {
   broadcast({ kind: 'goal-complete', goal: goals.publicGoal(g) });
   if (g.media) {

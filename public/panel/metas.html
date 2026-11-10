@@ -10,20 +10,31 @@
 </head>
 <body>
 <header>
-  <h1>TikSoda <span class="badge">v0.4</span></h1>
-  <nav class="tabs"><a href="/painel/">Live e overlays</a><a href="/painel/acoes.html">Ações</a><a href="/painel/metas.html" class="active">Metas</a></nav>
+  <h1>TikSoda <span class="badge">v0.5</span></h1>
+  <nav class="tabs"><a href="/painel/">Live e overlays</a><a href="/painel/acoes.html">Ações</a><a href="/painel/metas.html" class="active">Metas</a><a href="/painel/roleta.html">Roleta</a><a href="/painel/tts.html">TTS</a></nav>
   <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
 </header>
 
 <main class="acoes">
   <section class="card">
-    <h2 id="form-title">Nova meta de presente</h2>
-    <p class="hint">Cada meta ganha o seu próprio link pra colocar no LIVE Studio. Presentes de teste também contam; use <b>Zerar</b> depois de testar.</p>
+    <h2 id="form-title">Nova meta</h2>
+    <p class="hint">Cada meta ganha o seu próprio link pra colocar no LIVE Studio. Eventos de teste também contam; use <b>Zerar</b> depois de testar.</p>
     <form id="form" class="form">
       <input type="hidden" id="edit-id">
+      <div class="field">
+        <span class="label">Meta de quê?</span>
+        <div class="seg" id="kind">
+          <label><input type="radio" name="kind" value="gift" checked> 🎁 Presente</label>
+          <label><input type="radio" name="kind" value="likes"> ❤️ Likes</label>
+          <label><input type="radio" name="kind" value="follows"> 💗 Seguidores</label>
+          <label><input type="radio" name="kind" value="shares"> 🔁 Shares</label>
+          <label><input type="radio" name="kind" value="coins"> 🪙 Coins</label>
+        </div>
+      </div>
+
       <label>Nome (só pra você)<input id="name" placeholder="Ex.: Meta das rosas" maxlength="60"></label>
 
-      <div class="field">
+      <div class="field" id="gift-field">
         <span class="label">Presente <span id="gift-chosen" class="chosen">nenhum escolhido</span></span>
         <input id="gift-search" placeholder="Buscar presente pelo nome…" autocomplete="off">
         <div id="gift-grid" class="gift-grid"></div>
@@ -34,19 +45,35 @@
       <label>Quantos quer receber<input id="target" type="number" min="1" step="1" value="10"></label>
 
       <div class="field">
+        <span class="label">Modelo na tela</span>
+        <div class="model-pick">
+          <div class="seg" id="model">
+            <label data-only-gift><input type="radio" name="model" value="presente" checked> Presente pulsando</label>
+            <label><input type="radio" name="model" value="barra"> Barra</label>
+            <label><input type="radio" name="model" value="circulo"> Círculo</label>
+            <label><input type="radio" name="model" value="numero"> Número grande</label>
+            <label><input type="radio" name="model" value="copo"> Copo enchendo</label>
+          </div>
+          <div class="preview demo-preview"><iframe id="demo" tabindex="-1" title="Prévia do modelo"></iframe></div>
+        </div>
+      </div>
+
+      <div class="field">
         <span class="label">Textos</span>
         <input id="text-top" placeholder="Em cima (ex.: Meta de rosas 🌹)" maxlength="120">
         <input id="text-bottom" placeholder="Embaixo" value="{atual}/{meta}" maxlength="120">
-        <p class="hint">Use <code>{atual}</code>, <code>{meta}</code>, <code>{faltam}</code>, <code>{presente}</code> e <code>{vezes}</code> (quantas vezes já bateu). Ex.: <code>Faltam {faltam} {presente}s pra eu dançar!</code></p>
+        <p class="hint">Use <code>{atual}</code>, <code>{meta}</code>, <code>{faltam}</code>, <code>{porcento}</code>, <code>{presente}</code> (nome do presente, ou "likes", "seguidores"…) e <code>{vezes}</code> (quantas vezes já bateu). Ex.: <code>Faltam {faltam} {presente} pra eu dançar!</code></p>
       </div>
 
       <label>Quando bater a meta
         <select id="on-complete">
           <option value="recomecar">Comemorar e começar de novo</option>
+          <option value="aumentar">Comemorar e aumentar a meta</option>
           <option value="manter">Comemorar e ficar "concluída" na tela</option>
           <option value="sumir">Comemorar e sumir da tela</option>
         </select>
       </label>
+      <label id="step-field" hidden>Aumentar quanto a cada vez<input id="step" type="number" min="1" step="1" value="10"></label>
 
       <div class="field">
         <span class="label">Tocar ao bater (opcional)</span>
@@ -57,7 +84,8 @@
         <p class="hint">Toca no overlay de áudio e vídeo. Envie arquivos na aba Ações.</p>
       </div>
 
-      <label class="check"><input type="checkbox" id="show-top" checked> Mostrar quem mais ajudou na meta (👑)</label>
+      <label class="check" id="show-top-field"><input type="checkbox" id="show-top" checked> Mostrar quem mais ajudou na meta (👑)</label>
+      <label class="check"><input type="checkbox" id="reset-new-live"> Zerar sozinha quando eu conectar numa live nova</label>
 
       <div class="row">
         <button type="submit" id="save">Criar meta</button>

@@ -14,14 +14,13 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist node_modules (
-  echo Instalando dependencias, so na primeira vez...
-  call npm install
-  if errorlevel 1 (
-    echo Falha ao instalar. Veja a mensagem acima.
-    pause
-    exit /b 1
-  )
+rem Instala ou atualiza as dependencias (rapido quando ja esta tudo certo).
+echo Conferindo dependencias...
+call npm install --no-audit --no-fund --loglevel=error
+if errorlevel 1 (
+  echo Falha ao instalar. Veja a mensagem acima.
+  pause
+  exit /b 1
 )
 
 start "" http://localhost:3330/painel/

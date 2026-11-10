@@ -8,7 +8,7 @@
 </head>
 <body>
 <header>
-  <h1>TikSoda <span class="badge">v0.1</span></h1>
+  <h1>TikSoda <span class="badge">v0.2</span></h1>
   <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
 </header>
 
@@ -24,15 +24,22 @@
     <p class="hint" id="status-detail">A live precisa estar no ar. Pra testar sem live, use os botões de teste abaixo.</p>
     <div class="stats">
       <div><strong id="viewers">0</strong><span>espectadores</span></div>
-      <div><strong id="likes">0</strong><span>likes nesta sessão</span></div>
-      <div><strong id="coins">0</strong><span>coins nesta sessão</span></div>
+      <div><strong id="likes">0</strong><span>likes nesta live</span></div>
+      <div><strong id="coins">0</strong><span>coins nesta live</span></div>
     </div>
   </section>
 
+
   <section class="card">
-    <h2>Overlays</h2>
-    <p class="hint">Cada overlay tem seu link. No TikTok LIVE Studio: <b>Adicionar fonte → Link</b>, cole o link e ajuste o tamanho.</p>
-    <ul id="overlays" class="overlays"></ul>
+    <div class="feed-head">
+      <h2>Rankings desta live</h2>
+      <button class="secondary small" id="btn-reset">Zerar rankings</button>
+    </div>
+    <p class="hint">Zera sozinho quando você conecta numa live nova. Se fechar o app no meio da live, o ranking continua de onde parou.</p>
+    <div class="rankings">
+      <div><h3>❤️ Likes</h3><ol id="rank-likes" class="rank"></ol></div>
+      <div><h3>🪙 Coins</h3><ol id="rank-coins" class="rank"></ol></div>
+    </div>
   </section>
 
   <section class="card">
@@ -52,6 +59,11 @@
       <label class="check"><input type="checkbox" id="show-likes"> mostrar likes e entradas</label>
     </div>
     <ul id="feed" class="feed"><li class="empty">Nenhum evento ainda.</li></ul>
+  </section>
+  <section class="card overlays-card">
+    <h2>Overlays</h2>
+    <p class="hint">Cada overlay tem seu link. No TikTok LIVE Studio: <b>Adicionar fonte → Link</b>, cole o link e ajuste o tamanho. Pra mudar opções, edite o link aqui mesmo (ex.: <code>?top=3&amp;fundo=0</code>): a prévia ao lado atualiza e o Copiar já leva o link novo. Use os botões de teste pra ver as prévias em ação.</p>
+    <ul id="overlays" class="overlays"></ul>
   </section>
 </main>
 

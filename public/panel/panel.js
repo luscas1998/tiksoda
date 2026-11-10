@@ -1,4 +1,4 @@
-import { connectLive, escapeHtml, initials, describe } from '/shared/live-client.js';
+import { connectLive, escapeHtml, initials, describe, formatNumber } from '/shared/live-client.js';
 
 const $ = (id) => document.getElementById(id);
 const STATE_LABEL = {
@@ -8,8 +8,6 @@ const STATE_LABEL = {
   erro: 'Erro',
 };
 
-let sessionLikes = 0;
-let sessionCoins = 0;
 
 function renderStatus(s) {
   const el = $('status');
@@ -22,8 +20,6 @@ function renderStatus(s) {
 
 function addToFeed(ev) {
   if (ev.streaking) return;
-  if (ev.type === 'like') { sessionLikes += ev.likeCount; $('likes').textContent = sessionLikes.toLocaleString('pt-BR'); }
-  if (ev.type === 'gift') { sessionCoins += ev.totalCoins; $('coins').textContent = sessionCoins.toLocaleString('pt-BR'); }
   if ((ev.type === 'like' || ev.type === 'member') && !$('show-likes').checked) return;
 
   const feed = $('feed');
@@ -42,27 +38,62 @@ function addToFeed(ev) {
   while (feed.children.length > 200) feed.lastChild.remove();
 }
 
+// Prévia: cada overlay roda num iframe reduzido, recebendo os mesmos
+// eventos ao vivo. Editar o link (ex.: ?top=3) atualiza a prévia.
+const PREVIEW_MAX_W = 320;
+const PREVIEW_MAX_H = 240;
+
+function previewHtml(o) {
+  const [w, h] = String(o.size).split('x').map((n) => parseInt(n, 10) || 400);
+  const scale = Math.min(PREVIEW_MAX_W / w, PREVIEW_MAX_H / h, 1);
+  return `<div class="preview" style="width:${Math.round(w * scale)}px;height:${Math.round(h * scale)}px">
+    <iframe src="/overlay/${o.slug}" title="Prévia ${escapeHtml(o.name)}" tabindex="-1"
+      style="width:${w}px;height:${h}px;transform:scale(${scale})"></iframe>
+  </div>`;
+}
+
 function renderOverlays(list, port) {
   const base = `http://localhost:${port}`;
   $('overlays').innerHTML = list.map((o) => `
-    <li class="${o.ready ? '' : 'soon'}">
-      <div>
+    <li class="${o.ready ? '' : 'soon'}" data-slug="${o.slug}">
+      <div class="ov-info">
         <b>${escapeHtml(o.name)}</b> ${o.ready ? '' : '<span class="tag">em breve</span>'}
-        <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span></p>
+        <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span>${o.options && o.ready ? `<span class="size">Opções no link: <code>${escapeHtml(o.options)}</code></span>` : ''}</p>
+        ${o.ready ? `<div class="row link-row">
+          <input class="ov-link" value="${base}/overlay/${o.slug}" spellcheck="false" title="Dá pra editar: junte opções no fim, ex. ?top=3">
+          <button class="secondary" data-copy>Copiar</button>
+          <a class="secondary button ov-open" href="/overlay/${o.slug}" target="_blank">Abrir</a>
+        </div>` : ''}
       </div>
-      ${o.ready ? `<div class="row link-row">
-        <input readonly value="${base}/overlay/${o.slug}">
-        <button class="secondary" data-copy="${base}/overlay/${o.slug}">Copiar</button>
-        <a class="secondary button" href="/overlay/${o.slug}" target="_blank">Abrir</a>
-      </div>` : ''}
+      ${o.ready ? `<div class="ov-preview"><span class="preview-label">Prévia ao vivo</span>${previewHtml(o)}</div>` : ''}
     </li>`).join('');
 }
+
+// Atualiza a prévia e o botão Abrir quando o link é editado.
+let linkTimer;
+document.addEventListener('input', (e) => {
+  const input = e.target.closest('.ov-link');
+  if (!input) return;
+  clearTimeout(linkTimer);
+  linkTimer = setTimeout(() => {
+    const li = input.closest('li');
+    let path;
+    try {
+      const u = new URL(input.value);
+      if (!u.pathname.startsWith('/overlay/')) return;
+      path = u.pathname + u.search;
+    } catch { return; }
+    li.querySelector('iframe').src = path;
+    li.querySelector('.ov-open').href = path;
+  }, 400);
+});
 
 document.addEventListener('click', async (e) => {
   const copy = e.target.closest('[data-copy]');
   if (copy) {
-    try { await navigator.clipboard.writeText(copy.dataset.copy); copy.textContent = 'Copiado!'; }
-    catch { copy.previousElementSibling.select(); document.execCommand('copy'); copy.textContent = 'Copiado!'; }
+    const input = copy.parentElement.querySelector('input');
+    try { await navigator.clipboard.writeText(input.value); copy.textContent = 'Copiado!'; }
+    catch { input.select(); document.execCommand('copy'); copy.textContent = 'Copiado!'; }
     setTimeout(() => (copy.textContent = 'Copiar'), 1500);
   }
   const test = e.target.closest('[data-test]');
@@ -71,13 +102,27 @@ document.addEventListener('click', async (e) => {
 
 $('connect-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  sessionLikes = 0; sessionCoins = 0;
-  $('likes').textContent = '0'; $('coins').textContent = '0';
   const res = await fetch('/api/connect', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: $('username').value }),
   });
   if (!res.ok) $('status-detail').textContent = (await res.json()).error;
+});
+
+function renderRankings(r) {
+  if (!r) return;
+  $('likes').textContent = (r.totals.likes || 0).toLocaleString('pt-BR');
+  $('coins').textContent = (r.totals.coins || 0).toLocaleString('pt-BR');
+  for (const kind of ['likes', 'coins']) {
+    const rows = r[kind].slice(0, 10);
+    $(`rank-${kind}`).innerHTML = rows.length
+      ? rows.map((u) => `<li><span title="@${escapeHtml(u.username)}">${escapeHtml(u.nickname)}</span><b>${formatNumber(u.value)}</b></li>`).join('')
+      : '<li class="vazio">Ninguém ainda.</li>';
+  }
+}
+
+$('btn-reset').addEventListener('click', () => {
+  if (confirm('Zerar os rankings de likes e coins desta live?')) fetch('/api/rankings/reset', { method: 'POST' });
 });
 
 $('btn-disconnect').addEventListener('click', () => fetch('/api/disconnect', { method: 'POST' }));
@@ -88,8 +133,9 @@ renderOverlays(info.overlays, info.port);
 renderStatus(info.status);
 
 connectLive({
-  onHello: ({ status, recent }) => { renderStatus(status); $('feed').innerHTML = '<li class="empty">Nenhum evento ainda.</li>'; recent.forEach(addToFeed); },
+  onHello: ({ status, recent, rankings }) => { renderStatus(status); renderRankings(rankings); $('feed').innerHTML = '<li class="empty">Nenhum evento ainda.</li>'; recent.forEach(addToFeed); },
   onEvent: addToFeed,
   onStatus: renderStatus,
+  onRankings: renderRankings,
   onSocket: (ok) => { if (!ok) renderStatus({ state: 'erro', message: 'O app foi fechado. Abra o TikSoda de novo.' }); },
 });

@@ -62,7 +62,7 @@ export class LiveManager extends EventEmitter {
     try {
       const state = await conn.connect();
       if (this.connection !== conn) return this.status;
-      this.setStatus({ state: 'conectado', message: `Sala ${state.roomId}` });
+      this.setStatus({ state: 'conectado', roomId: String(state.roomId), message: `Sala ${state.roomId}` });
     } catch (err) {
       if (this.connection === conn) this.connection = null;
       const msg = err?.message || String(err);

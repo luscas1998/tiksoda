@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Alertas</title>
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif; color: #fff;
+    height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
+  }
+  .alerta {
+    display: flex; align-items: center; gap: 18px; max-width: 100%;
+    background: linear-gradient(135deg, rgba(20,20,32,.9), rgba(40,20,45,.9));
+    border: 3px solid var(--c); border-radius: 24px; padding: 16px 24px;
+    box-shadow: 0 0 30px var(--c), 0 10px 30px rgba(0,0,0,.4);
+    animation: entra 500ms cubic-bezier(.2, 1.4, .4, 1) both;
+  }
+  .alerta.sai { animation: sai 400ms ease-in both; }
+  .alerta.gift { --c: #ffc93c; }
+  .alerta.follow { --c: #ff4f8b; }
+  .alerta.share { --c: #25f4ee; }
+  .avatar {
+    width: 84px; height: 84px; border-radius: 50%; flex: none; border: 3px solid var(--c);
+    background: #444 center/cover; display: grid; place-items: center; font-size: 34px; font-weight: 800;
+  }
+  .texto { min-width: 0; }
+  .nome { font-size: 30px; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0,0,0,.6); }
+  .acao { font-size: 22px; opacity: .95; margin-top: 4px; }
+  .acao b { color: var(--c); }
+  .gift-img { width: 92px; height: 92px; flex: none; object-fit: contain; animation: pula 900ms ease-in-out infinite alternate; }
+  .emoji { font-size: 64px; flex: none; animation: pula 900ms ease-in-out infinite alternate; }
+  @keyframes entra { from { opacity: 0; transform: scale(.6) translateY(30px); } to { opacity: 1; transform: none; } }
+  @keyframes sai { to { opacity: 0; transform: scale(.85) translateY(-20px); } }
+  @keyframes pula { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-8px) rotate(4deg); } }
+</style>
+</head>
+<body>
+<script type="module">
+  import { connectLive, escapeHtml, initials, formatNumber } from '/shared/live-client.js';
+
+  // Opções pela URL:
+  //   ?tipos=gift,follow,share   quais eventos viram alerta
+  //   ?min=10                    só presentes com pelo menos 10 coins
+  //   ?tempo=5                   segundos que cada alerta fica na tela
+  const params = new URLSearchParams(location.search);
+  const TIPOS = new Set((params.get('tipos') || 'gift,follow,share').split(','));
+  const MIN = Number(params.get('min')) || 0;
+  const TEMPO = (Number(params.get('tempo')) || 5) * 1000;
+
+  // Fila: um alerta de cada vez, nada se atropela.
+  const fila = [];
+  let mostrando = false;
+
+  function html(ev) {
+    const avatar = ev.user.avatar
+      ? `<div class="avatar" style="background-image:url('${escapeHtml(ev.user.avatar)}')"></div>`
+      : `<div class="avatar">${escapeHtml(initials(ev.user.nickname))}</div>`;
+    let acao = '', extra = '';
+    if (ev.type === 'gift') {
+      acao = `enviou <b>${ev.repeatCount > 1 ? ev.repeatCount + 'x ' : ''}${escapeHtml(ev.giftName)}</b> · ${formatNumber(ev.totalCoins)} coins`;
+      extra = ev.giftImage ? `<img class="gift-img" src="${escapeHtml(ev.giftImage)}" alt="">` : '<div class="emoji">🎁</div>';
+    } else if (ev.type === 'follow') {
+      acao = '<b>começou a seguir!</b>';
+      extra = '<div class="emoji">💖</div>';
+    } else if (ev.type === 'share') {
+      acao = '<b>compartilhou a live!</b>';
+      extra = '<div class="emoji">🚀</div>';
+    }
+    return `${avatar}<div class="texto"><div class="nome">${escapeHtml(ev.user.nickname)}</div><div class="acao">${acao}</div></div>${extra}`;
+  }
+
+  function proximo() {
+    const ev = fila.shift();
+    if (!ev) { mostrando = false; return; }
+    mostrando = true;
+    const el = document.createElement('div');
+    el.className = `alerta ${ev.type}`;
+    el.innerHTML = html(ev);
+    document.body.appendChild(el);
+    setTimeout(() => {
+      el.classList.add('sai');
+      setTimeout(() => { el.remove(); proximo(); }, 400);
+    }, TEMPO);
+  }
+
+  function onEvent(ev) {
+    if (!TIPOS.has(ev.type) || ev.streaking) return;
+    if (ev.type === 'gift' && ev.totalCoins < MIN) return;
+    if (fila.length > 30) fila.shift(); // evita fila infinita em chuva de presentes
+    fila.push(ev);
+    if (!mostrando) proximo();
+  }
+
+  connectLive({ onEvent });
+</script>
+</body>
+</html>

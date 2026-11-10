@@ -13,6 +13,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 "Segoe UI", system-ui, sans-serif; }
 header {
+  flex-wrap: wrap;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 16px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 2;
 }
@@ -103,3 +104,8 @@ button.small { padding: 5px 10px; font-size: 13px; }
   .overlays li { flex-direction: column; }
   .ov-preview { align-items: flex-start; }
 }
+
+.tabs { display: flex; gap: 4px; margin-right: auto; margin-left: 16px; }
+.tabs a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+.tabs a:hover { color: var(--text); background: #22222f; }
+.tabs a.active { color: var(--text); background: #2a2a3b; }

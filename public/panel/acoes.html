@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Ações</title>
+<link rel="stylesheet" href="panel.css">
+<link rel="stylesheet" href="acoes.css">
+</head>
+<body>
+<header>
+  <h1>TikSoda <span class="badge">v0.3</span></h1>
+  <nav class="tabs"><a href="/painel/">Live e overlays</a><a href="/painel/acoes.html" class="active">Ações</a></nav>
+  <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
+</header>
+
+<main class="acoes">
+  <section class="card">
+    <h2>Nova ação</h2>
+    <p class="hint">As ações tocam no overlay <b>Áudio e vídeo das ações</b>. Adicione o link dele no LIVE Studio (aba Live e overlays) em tela cheia.</p>
+    <form id="form" class="form">
+      <input type="hidden" id="edit-id">
+      <label>Nome (opcional)<input id="name" placeholder="Ex.: Som da rosa" maxlength="60"></label>
+
+      <div class="field">
+        <span class="label">Quando</span>
+        <div class="seg">
+          <label><input type="radio" name="trigger" value="gift" checked> Receber um presente</label>
+          <label><input type="radio" name="trigger" value="likes"> Meta de likes</label>
+        </div>
+      </div>
+
+      <div id="gift-fields" class="field">
+        <span class="label">Presente <span id="gift-chosen" class="chosen">nenhum escolhido</span></span>
+        <input id="gift-search" placeholder="Buscar presente pelo nome…" autocomplete="off">
+        <div id="gift-grid" class="gift-grid"></div>
+        <p class="hint" id="gift-empty"></p>
+        <label class="check"><input type="checkbox" id="per-unit"> Repetir pela quantidade (ex.: 5 rosas tocam 5 vezes, até 10)</label>
+      </div>
+
+      <div id="likes-fields" class="field" hidden>
+        <span class="label">Likes</span>
+        <div class="row">
+          <select id="likes-mode">
+            <option value="cada">A cada</option>
+            <option value="meta">Uma vez, ao chegar em</option>
+          </select>
+          <input id="likes-amount" type="number" min="1" step="1" value="1000">
+          <span>likes na live</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Tocar</span>
+        <div class="row">
+          <select id="media-file"></select>
+          <span class="vol">🔊 <input id="volume" type="range" min="0" max="100" value="100"> <b id="volume-val">100%</b></span>
+        </div>
+        <p class="hint">Não achou? Envie o arquivo na biblioteca aqui embaixo.</p>
+      </div>
+
+      <div class="row">
+        <button type="submit" id="save">Salvar ação</button>
+        <button type="button" class="secondary" id="cancel" hidden>Cancelar edição</button>
+        <span id="form-msg" class="msg"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Suas ações</h2>
+    <ul id="rules" class="rules"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Biblioteca de mídia</h2>
+    <p class="hint">Áudio (mp3, wav, ogg, m4a), vídeo (mp4, webm, mov) ou imagem/GIF. Os arquivos ficam na pasta <code>data/midia</code> do app.</p>
+    <label class="upload"><input type="file" id="upload" multiple accept="audio/*,video/*,image/*"> <span>+ Enviar arquivos</span></label>
+    <span id="upload-msg" class="msg"></span>
+    <ul id="media" class="media"></ul>
+  </section>
+</main>
+
+<script type="module" src="acoes.js"></script>
+</body>
+</html>

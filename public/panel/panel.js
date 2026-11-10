@@ -47,7 +47,7 @@ function previewHtml(o) {
   const [w, h] = String(o.size).split('x').map((n) => parseInt(n, 10) || 400);
   const scale = Math.min(PREVIEW_MAX_W / w, PREVIEW_MAX_H / h, 1);
   return `<div class="preview" style="width:${Math.round(w * scale)}px;height:${Math.round(h * scale)}px">
-    <iframe src="/overlay/${o.slug}" title="Prévia ${escapeHtml(o.name)}" tabindex="-1"
+    <iframe src="/overlay/${o.slug}?previa=1" title="Prévia ${escapeHtml(o.name)}" tabindex="-1"
       style="width:${w}px;height:${h}px;transform:scale(${scale})"></iframe>
   </div>`;
 }
@@ -77,13 +77,15 @@ document.addEventListener('input', (e) => {
   clearTimeout(linkTimer);
   linkTimer = setTimeout(() => {
     const li = input.closest('li');
-    let path;
+    let path, previewPath;
     try {
       const u = new URL(input.value);
       if (!u.pathname.startsWith('/overlay/')) return;
       path = u.pathname + u.search;
+      u.searchParams.set('previa', '1');
+      previewPath = u.pathname + u.search;
     } catch { return; }
-    li.querySelector('iframe').src = path;
+    li.querySelector('iframe').src = previewPath;
     li.querySelector('.ov-open').href = path;
   }, 400);
 });

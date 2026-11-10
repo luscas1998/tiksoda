@@ -38,27 +38,62 @@ function addToFeed(ev) {
   while (feed.children.length > 200) feed.lastChild.remove();
 }
 
+// Prévia: cada overlay roda num iframe reduzido, recebendo os mesmos
+// eventos ao vivo. Editar o link (ex.: ?top=3) atualiza a prévia.
+const PREVIEW_MAX_W = 320;
+const PREVIEW_MAX_H = 240;
+
+function previewHtml(o) {
+  const [w, h] = String(o.size).split('x').map((n) => parseInt(n, 10) || 400);
+  const scale = Math.min(PREVIEW_MAX_W / w, PREVIEW_MAX_H / h, 1);
+  return `<div class="preview" style="width:${Math.round(w * scale)}px;height:${Math.round(h * scale)}px">
+    <iframe src="/overlay/${o.slug}" title="Prévia ${escapeHtml(o.name)}" tabindex="-1"
+      style="width:${w}px;height:${h}px;transform:scale(${scale})"></iframe>
+  </div>`;
+}
+
 function renderOverlays(list, port) {
   const base = `http://localhost:${port}`;
   $('overlays').innerHTML = list.map((o) => `
-    <li class="${o.ready ? '' : 'soon'}">
-      <div>
+    <li class="${o.ready ? '' : 'soon'}" data-slug="${o.slug}">
+      <div class="ov-info">
         <b>${escapeHtml(o.name)}</b> ${o.ready ? '' : '<span class="tag">em breve</span>'}
         <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span>${o.options && o.ready ? `<span class="size">Opções no link: <code>${escapeHtml(o.options)}</code></span>` : ''}</p>
+        ${o.ready ? `<div class="row link-row">
+          <input class="ov-link" value="${base}/overlay/${o.slug}" spellcheck="false" title="Dá pra editar: junte opções no fim, ex. ?top=3">
+          <button class="secondary" data-copy>Copiar</button>
+          <a class="secondary button ov-open" href="/overlay/${o.slug}" target="_blank">Abrir</a>
+        </div>` : ''}
       </div>
-      ${o.ready ? `<div class="row link-row">
-        <input readonly value="${base}/overlay/${o.slug}">
-        <button class="secondary" data-copy="${base}/overlay/${o.slug}">Copiar</button>
-        <a class="secondary button" href="/overlay/${o.slug}" target="_blank">Abrir</a>
-      </div>` : ''}
+      ${o.ready ? `<div class="ov-preview"><span class="preview-label">Prévia ao vivo</span>${previewHtml(o)}</div>` : ''}
     </li>`).join('');
 }
+
+// Atualiza a prévia e o botão Abrir quando o link é editado.
+let linkTimer;
+document.addEventListener('input', (e) => {
+  const input = e.target.closest('.ov-link');
+  if (!input) return;
+  clearTimeout(linkTimer);
+  linkTimer = setTimeout(() => {
+    const li = input.closest('li');
+    let path;
+    try {
+      const u = new URL(input.value);
+      if (!u.pathname.startsWith('/overlay/')) return;
+      path = u.pathname + u.search;
+    } catch { return; }
+    li.querySelector('iframe').src = path;
+    li.querySelector('.ov-open').href = path;
+  }, 400);
+});
 
 document.addEventListener('click', async (e) => {
   const copy = e.target.closest('[data-copy]');
   if (copy) {
-    try { await navigator.clipboard.writeText(copy.dataset.copy); copy.textContent = 'Copiado!'; }
-    catch { copy.previousElementSibling.select(); document.execCommand('copy'); copy.textContent = 'Copiado!'; }
+    const input = copy.parentElement.querySelector('input');
+    try { await navigator.clipboard.writeText(input.value); copy.textContent = 'Copiado!'; }
+    catch { input.select(); document.execCommand('copy'); copy.textContent = 'Copiado!'; }
     setTimeout(() => (copy.textContent = 'Copiar'), 1500);
   }
   const test = e.target.closest('[data-test]');

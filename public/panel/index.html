@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Painel</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<header>
+  <h1>TikSoda <span class="badge">v0.1</span></h1>
+  <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Conectar na live</h2>
+    <form id="connect-form" class="row">
+      <span class="at">@</span>
+      <input id="username" placeholder="seu_usuario" autocomplete="off" required>
+      <button type="submit" id="btn-connect">Conectar</button>
+      <button type="button" id="btn-disconnect" class="secondary">Desconectar</button>
+    </form>
+    <p class="hint" id="status-detail">A live precisa estar no ar. Pra testar sem live, use os botões de teste abaixo.</p>
+    <div class="stats">
+      <div><strong id="viewers">0</strong><span>espectadores</span></div>
+      <div><strong id="likes">0</strong><span>likes nesta sessão</span></div>
+      <div><strong id="coins">0</strong><span>coins nesta sessão</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Overlays</h2>
+    <p class="hint">Cada overlay tem seu link. No TikTok LIVE Studio: <b>Adicionar fonte → Link</b>, cole o link e ajuste o tamanho.</p>
+    <ul id="overlays" class="overlays"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Testar sem estar ao vivo</h2>
+    <div class="row wrap">
+      <button class="secondary" data-test="chat">Comentário</button>
+      <button class="secondary" data-test="gift">Presente</button>
+      <button class="secondary" data-test="like">Likes</button>
+      <button class="secondary" data-test="follow">Follow</button>
+      <button class="secondary" data-test="share">Share</button>
+    </div>
+  </section>
+
+  <section class="card feed-card">
+    <div class="feed-head">
+      <h2>Eventos ao vivo</h2>
+      <label class="check"><input type="checkbox" id="show-likes"> mostrar likes e entradas</label>
+    </div>
+    <ul id="feed" class="feed"><li class="empty">Nenhum evento ainda.</li></ul>
+  </section>
+</main>
+
+<script type="module" src="panel.js"></script>
+</body>
+</html>

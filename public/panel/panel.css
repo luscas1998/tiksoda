@@ -1,0 +1,76 @@
+:root {
+  --bg: #0f0f17;
+  --card: #1a1a26;
+  --line: #2b2b3c;
+  --text: #ececf3;
+  --muted: #9a9ab0;
+  --accent: #ff3d7f;
+  --accent-2: #25f4ee;
+  --ok: #3ddc84;
+  --warn: #ffc93c;
+  --err: #ff5a5a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 "Segoe UI", system-ui, sans-serif; }
+header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 2;
+}
+h1 { margin: 0; font-size: 22px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+h1 .badge { font-size: 12px; color: var(--muted); -webkit-text-fill-color: var(--muted); }
+h2 { margin: 0 0 10px; font-size: 16px; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px 24px; max-width: 1300px; margin: 0 auto; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.feed-card { grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; max-height: calc(100vh - 110px); }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 16px; } .feed-card { grid-column: 1; grid-row: auto; max-height: 70vh; } }
+
+.row { display: flex; gap: 8px; align-items: center; }
+.row.wrap { flex-wrap: wrap; }
+.at { color: var(--muted); font-size: 18px; }
+input {
+  flex: 1; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 12px; font: inherit;
+}
+input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+button, .button {
+  background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 9px 14px;
+  font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap;
+}
+button.secondary, .button.secondary { background: #2a2a3b; color: var(--text); }
+button:hover, .button:hover { filter: brightness(1.15); }
+button:disabled { opacity: .5; cursor: default; }
+.hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+
+.status { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.status .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.status.conectado .dot { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+.status.conectando .dot { background: var(--warn); animation: pulse 1s infinite; }
+.status.erro .dot { background: var(--err); }
+@keyframes pulse { 50% { opacity: .3; } }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.stats div { background: var(--bg); border-radius: 10px; padding: 10px; text-align: center; }
+.stats strong { display: block; font-size: 20px; }
+.stats span { color: var(--muted); font-size: 12px; }
+
+.overlays { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.overlays li { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.overlays li.soon { opacity: .55; }
+.overlays p { margin: 2px 0 8px; color: var(--muted); font-size: 13px; }
+.overlays .size { display: block; font-size: 12px; }
+.link-row input { font-family: Consolas, monospace; font-size: 13px; }
+.tag { font-size: 11px; background: #2a2a3b; color: var(--muted); border-radius: 6px; padding: 1px 6px; font-weight: 600; }
+
+.feed-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.check { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+.check input { flex: none; }
+.feed { list-style: none; margin: 8px 0 0; padding: 0; overflow-y: auto; flex: 1; }
+.feed .empty { color: var(--muted); padding: 20px 0; text-align: center; }
+.ev { display: flex; gap: 10px; align-items: flex-start; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+.ev .avatar { width: 32px; height: 32px; border-radius: 50%; flex: none; background: #333; display: grid; place-items: center; font-weight: 700; object-fit: cover; }
+.ev .body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ev .user { color: var(--muted); font-size: 12px; }
+.ev time { color: var(--muted); font-size: 12px; flex: none; }
+.ev.gift { background: rgba(255, 201, 60, .07); }
+.ev.follow { background: rgba(255, 61, 127, .07); }
+.ev.share { background: rgba(37, 244, 238, .06); }

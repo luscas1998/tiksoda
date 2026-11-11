@@ -1,0 +1,6 @@
+{
+  "name": "tiksoda",
+  "pkg": {
+    "assets": ["public/**/*"]
+  }
+}

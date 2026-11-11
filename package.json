@@ -1,13 +1,14 @@
 {
   "name": "tiksoda",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "description": "App local para lives do TikTok: overlays, rankings e ações por presente.",
   "private": true,
   "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "build:exe": "node scripts/build-exe.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -17,5 +18,10 @@
     "puppeteer-core": "23.11.1",
     "tiktok-live-connector": "2.5.0",
     "ws": "8.18.0"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.10.1",
+    "esbuild": "^0.24.2",
+    "resedit": "^2.0.3"
   }
 }

@@ -22,7 +22,7 @@ export class Session extends EventEmitter {
   }
 
   empty(roomId = '') {
-    return { roomId, startedAt: Date.now(), users: {}, followers: [], totals: { likes: 0, coins: 0, gifts: 0, follows: 0, shares: 0 } };
+    return { roomId, startedAt: Date.now(), users: {}, followers: [], totals: { likes: 0, coins: 0, gifts: 0, follows: 0, shares: 0, peakViewers: 0 } };
   }
 
   load() {

@@ -31,11 +31,7 @@ let port = 3330;
 const picker = createGiftPicker({ search: $('gift-search'), grid: $('gift-grid'), empty: $('gift-empty'), chosenLabel: $('gift-chosen'), onChange: () => updateDemo() });
 
 // ---------- status ----------
-const STATE_LABEL = { desconectado: 'Desconectado', conectando: 'Conectando…', conectado: 'Ao vivo', erro: 'Erro' };
-function renderStatus(s) {
-  $('status').className = `status ${s.state}`;
-  $('status-text').textContent = s.state === 'conectado' ? `Ao vivo · @${s.username}` : STATE_LABEL[s.state] || s.state;
-}
+function renderStatus() { /* o status aparece no topo (shell.js) */ }
 
 // ---------- mídia opcional ----------
 async function loadMedia() {
@@ -138,7 +134,7 @@ function previewBox(g) {
   const [w, h] = (MODEL_INFO[g.model] || MODEL_INFO.presente).size;
   const scale = Math.min(220 / w, 220 / h);
   return `<div class="preview" style="width:${Math.round(w * scale)}px;height:${Math.round(h * scale)}px">
-    <iframe src="${previewOf(linkFor(g))}" tabindex="-1" title="Prévia"
+    <iframe data-src="${previewOf(linkFor(g))}" tabindex="-1" title="Prévia"
       style="width:${w}px;height:${h}px;transform:scale(${scale})"></iframe>
   </div>`;
 }
@@ -173,6 +169,7 @@ function renderGoals() {
         </div>
       </div>
     </li>`).join('') : '<li class="empty-msg">Nenhuma meta ainda. Crie a primeira ao lado.</li>';
+  lazyFrames($('goals'));
   updateCounts();
 }
 
@@ -192,7 +189,7 @@ $('goals').addEventListener('change', (e) => {
   const g = goals.find((x) => x.id === li.dataset.id);
   themes[g.id] = e.target.value;
   li.querySelector('.link-row input').value = linkFor(g);
-  li.querySelector('iframe').src = previewOf(linkFor(g));
+  setFrameSrc(li.querySelector('iframe'), previewOf(linkFor(g)));
 });
 
 $('goals').addEventListener('click', async (e) => {
@@ -207,9 +204,9 @@ $('goals').addEventListener('click', async (e) => {
     } else if (t.dataset.adj) {
       await api(`/api/metas/${g.id}/ajustar`, { method: 'POST', body: JSON.stringify({ amount: Number(t.dataset.adj) }) });
     } else if (t.matches('[data-reset]')) {
-      if (confirm('Zerar a contagem desta meta?')) await api(`/api/metas/${g.id}/zerar`, { method: 'POST' });
+      if (await ask('Zerar a contagem desta meta?')) await api(`/api/metas/${g.id}/zerar`, { method: 'POST' });
     } else if (t.matches('[data-del]')) {
-      if (!confirm('Apagar esta meta? O link dela para de funcionar.')) return;
+      if (!await ask('Apagar esta meta? O link dela para de funcionar.', { ok: 'Apagar', danger: true })) return;
       await api(`/api/metas/${g.id}`, { method: 'DELETE' });
       await loadGoals();
     } else if (t.matches('[data-copy]')) {
@@ -238,7 +235,7 @@ $('goals').addEventListener('click', async (e) => {
       formMsg('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  } catch (err) { alert(err.message); }
+  } catch (err) { toast(err.message, 'err'); }
 });
 
 // ---------- carregar ----------

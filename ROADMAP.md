@@ -14,12 +14,16 @@
 - [x] TTS com aba própria (comando, filtros, voz do Windows)
 - [x] Roleta por comando no chat, por presente e pelo painel
 - [x] Overlay de chat
+- [x] Painel novo com menu lateral, avisos e animações
+- [x] @ fixo, conexão automática e esperar a live começar
+- [x] Overlay de contadores e último seguidor
+- [x] Backup e restauração
+- [x] App do Windows (TikSoda.exe) com ícone, atalhos e abrir com o Windows
 
 ## Próximos
 
 - [ ] **Comandos no chat** que tocam mídia (ex.: `!risada`) com limite de tempo
 - [ ] **Sorteio de pessoas** (quem comentar uma palavra entra)
-- [ ] **Contador** simples de follows e shares, último seguidor
 - [ ] **Boas-vindas** para quem entra na live
 
 ## Depois

@@ -4,15 +4,30 @@ App local para lives do TikTok: overlays, rankings e ações por presente. Roda 
 
 > Usa a biblioteca não oficial [tiktok-live-connector](https://github.com/zerodytrash/TikTok-Live-Connector) para ler os eventos da live. Ela pode parar de funcionar quando o TikTok muda algo; nesse caso, atualizar a biblioteca costuma resolver.
 
-## Como usar (Windows)
+## Como usar (Windows): app
+
+1. Baixe o `TikSoda.exe` e coloque numa pasta sua (ex.: `Documentos\TikSoda`).
+2. Dê dois cliques. Na primeira vez o Windows pode mostrar "O Windows protegeu o computador", porque o app não tem assinatura paga: clique em **Mais informações → Executar assim mesmo**.
+3. O painel abre numa janela própria. Digite o seu @ uma vez: ele fica salvo e o app conecta sozinho toda vez que abrir (e espera a live começar, se ainda não estiver no ar).
+4. Em **Configurações** dá pra criar atalho na área de trabalho, no menu Iniciar e abrir junto com o Windows.
+
+O app não tem janela preta. Pra fechar, use o botão **Fechar** no menu lateral do painel. Abrir o exe de novo com ele já rodando só reabre o painel.
+
+**Onde ficam os dados:** em `%APPDATA%\TikSoda` (ações, metas, roletas, mídias, rankings). Se preferir tudo junto do exe (pra levar num pendrive), crie uma pasta `data` ao lado do `TikSoda.exe` antes de abrir. **Configurações → Backup** guarda tudo num arquivo pra levar pra outro PC.
+
+### Como usar sem o exe (Node.js)
 
 1. Instale o [Node.js](https://nodejs.org) (versão LTS), só na primeira vez.
 2. Baixe este repositório (botão verde **Code → Download ZIP**) e extraia numa pasta.
-3. Dê dois cliques em `iniciar.bat`. Na primeira vez ele instala o que precisa.
-4. O painel abre no navegador em `http://localhost:3330/painel/`.
-5. Digite o seu @ e clique em **Conectar** (a live precisa estar no ar).
+3. Dê dois cliques em `iniciar.bat`. Na primeira vez ele instala o que precisa e depois abre o painel em `http://localhost:3330/painel/`.
 
-Deixe a janela preta aberta durante a live. Fechou ela, o app para.
+Nesse modo os dados ficam na pasta `data` do projeto e a janela preta precisa ficar aberta durante a live.
+
+## Painel
+
+Menu lateral com **Início** (conexão, números da live com tempo no ar e pico de espectadores, feed com filtros, rankings, testes), **Overlays** (todos os links por categoria, com tema e prévia), **Ações**, **Metas**, **Roleta**, **TTS** e **Configurações** (conta, desempenho, backup, atalhos do Windows).
+
+Pra gastar pouco PC: as prévias só carregam quando aparecem na tela, e dá pra desligar prévias e animações em **Configurações → Desempenho**. Os overlays no LIVE Studio não são afetados.
 
 ## Overlays no TikTok LIVE Studio
 
@@ -35,6 +50,7 @@ Cada overlay tem o seu próprio link, mostrado no painel com botão de copiar.
 | Chat | `/overlay/chat` | pronto |
 | Roleta | `/overlay/roleta/<id>` (um link por roleta) | pronto |
 | TTS (comentários em voz alta) | `/overlay/tts` | pronto |
+| Contadores (likes, seguidores, shares, coins, espectadores, presentes) | `/overlay/contadores` | pronto |
 
 ### Temas
 
@@ -81,6 +97,12 @@ Coloque este overlay em tela cheia no LIVE Studio. No navegador comum o som pode
 - `?max=10` quantas mensagens aparecem · `?tempo=30` cada uma some depois de 30 s
 - `?tamanho=22` tamanho da letra · `?avatar=0` sem foto
 - `?comandos=0` esconde mensagens que começam com `!` · `?presentes=1` mostra presentes no meio do chat
+
+### Opções dos contadores
+
+- `?itens=likes,follows,shares` quais números aparecem (`likes`, `follows`, `shares`, `coins`, `viewers`, `gifts`)
+- `?coluna=1` um embaixo do outro · `?tamanho=28` tamanho · `?legenda=0` só os números
+- `?ultimo=1` mostra o último seguidor e o último presente
 
 ## Metas (aba Metas do painel)
 
@@ -150,10 +172,13 @@ No painel, a seção **Testar sem estar ao vivo** gera eventos falsos (comentár
 
 ```bash
 npm install
-npm run dev   # reinicia sozinho ao salvar
+npm run dev        # reinicia sozinho ao salvar
+npm run build:exe  # gera dist/TikSoda.exe (Windows 64 bits, sem precisar de Node no PC)
 ```
 
 - `src/server.js` servidor web, API e WebSocket
+- `src/app.js` pasta de dados, abrir o painel, atalhos do Windows (modo app)
+- `scripts/build-exe.mjs` monta o exe (esbuild + pkg, ícone e sem janela preta)
 - `src/live.js` conexão com a live
 - `src/normalize.js` converte eventos do TikTok num formato simples
 - `src/overlays.js` lista de overlays

@@ -12,11 +12,7 @@ const api = async (url, opts = {}) => {
 const COLORS = ['#ff4f8b', '#25f4ee', '#ffc93c', '#9a8cff', '#3ddc84', '#ff8a3d', '#4f9dff', '#f25cf2'];
 const KIND_ICON = { audio: '🎵', video: '🎬', imagem: '🖼️' };
 const PREVIEW = { w: 500, h: 600, scale: 0.4 };
-const STATE_LABEL = { desconectado: 'Desconectado', conectando: 'Conectando…', conectado: 'Ao vivo', erro: 'Erro' };
-function renderStatus(s) {
-  $('status').className = `status ${s.state}`;
-  $('status-text').textContent = s.state === 'conectado' ? `Ao vivo · @${s.username}` : STATE_LABEL[s.state] || s.state;
-}
+function renderStatus() { /* o status aparece no topo (shell.js) */ }
 function formMsg(text, kind = '') { $('form-msg').className = `msg ${kind}`; $('form-msg').textContent = text; }
 
 let wheels = [];
@@ -122,7 +118,7 @@ function renderWheels() {
       </div>
       <div class="goal-body">
         <div class="preview" style="width:${PREVIEW.w * PREVIEW.scale}px;height:${PREVIEW.h * PREVIEW.scale}px">
-          <iframe src="${previewOf(linkFor(w))}" tabindex="-1" title="Prévia"
+          <iframe data-src="${previewOf(linkFor(w))}" tabindex="-1" title="Prévia"
             style="width:${PREVIEW.w}px;height:${PREVIEW.h}px;transform:scale(${PREVIEW.scale})"></iframe>
         </div>
         <div class="goal-side">
@@ -138,6 +134,7 @@ function renderWheels() {
         </div>
       </div>
     </li>`).join('') : '<li class="empty-msg">Nenhuma roleta ainda. Crie a primeira ao lado.</li>';
+  lazyFrames($('wheels'));
 }
 
 $('wheels').addEventListener('change', (e) => {
@@ -146,7 +143,7 @@ $('wheels').addEventListener('change', (e) => {
   const w = wheels.find((x) => x.id === li.dataset.id);
   themes[w.id] = e.target.value;
   li.querySelector('.link-row input').value = linkFor(w);
-  li.querySelector('iframe').src = previewOf(linkFor(w));
+  setFrameSrc(li.querySelector('iframe'), previewOf(linkFor(w)));
 });
 
 $('wheels').addEventListener('click', async (e) => {
@@ -162,7 +159,7 @@ $('wheels').addEventListener('click', async (e) => {
       await api(`/api/roletas/${w.id}/girar`, { method: 'POST' });
       setTimeout(loadWheels, 300);
     } else if (t.matches('[data-del]')) {
-      if (!confirm('Apagar esta roleta? O link dela para de funcionar.')) return;
+      if (!await ask('Apagar esta roleta? O link dela para de funcionar.', { ok: 'Apagar', danger: true })) return;
       await api(`/api/roletas/${w.id}`, { method: 'DELETE' });
       await loadWheels();
     } else if (t.matches('[data-copy]')) {
@@ -189,7 +186,7 @@ $('wheels').addEventListener('click', async (e) => {
       formMsg('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  } catch (err) { alert(err.message); }
+  } catch (err) { toast(err.message, 'err'); }
 });
 
 // ---------- carregar ----------

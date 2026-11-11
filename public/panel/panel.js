@@ -1,34 +1,110 @@
 import { connectLive, escapeHtml, initials, describe, formatNumber } from '/shared/live-client.js';
-import { themeSelect, withTheme, themeOf } from './temas.js';
 
 const $ = (id) => document.getElementById(id);
-const STATE_LABEL = {
-  desconectado: 'Desconectado',
-  conectando: 'Conectando…',
-  conectado: 'Ao vivo',
-  erro: 'Erro',
+const api = async (url, opts = {}) => {
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Algo deu errado.');
+  return data;
 };
 
+let cfg = {};
+let status = { state: 'desconectado' };
 
-function renderStatus(s) {
-  const el = $('status');
-  el.className = `status ${s.state}`;
-  $('status-text').textContent = s.state === 'conectado' ? `Ao vivo · @${s.username}` : STATE_LABEL[s.state] || s.state;
-  if (s.message) $('status-detail').textContent = s.message;
-  $('viewers').textContent = (s.viewers || 0).toLocaleString('pt-BR');
-  $('btn-connect').disabled = s.state === 'conectando';
+// ---------- conexão: o @ fica salvo até você trocar ----------
+function renderWho() {
+  const user = cfg.username || '';
+  $('who-name').textContent = user ? `@${user}` : 'Nenhum @ salvo';
+  $('who-initial').textContent = user ? initials(user) : '@';
+  const editing = !$('connect-form').hidden;
+  $('who-actions').hidden = editing || !user;
+  if (!user && !editing) openEditor();
+  const s = status.state;
+  const on = s === 'conectado' || s === 'conectando' || s === 'aguardando';
+  $('btn-connect').hidden = on;
+  $('btn-disconnect').hidden = !on;
+  $('btn-connect').textContent = s === 'erro' ? 'Tentar de novo' : 'Conectar';
+  const detail = {
+    conectado: `Ao vivo agora. ${status.message || ''}`,
+    conectando: 'Conectando na live…',
+    aguardando: status.message || 'Esperando a live começar…',
+    erro: status.message || 'Não deu pra conectar.',
+    desconectado: user ? (status.message && status.message !== 'Desconectado.' ? status.message : 'Pronto pra conectar.') : 'Digite o seu @ pra começar.',
+  }[s] || '';
+  $('status-detail').textContent = detail;
 }
 
-function addToFeed(ev) {
-  if (ev.streaking) return;
-  if ((ev.type === 'like' || ev.type === 'member') && !$('show-likes').checked) return;
+function openEditor() {
+  $('connect-form').hidden = false;
+  $('who-actions').hidden = true;
+  $('btn-cancel-change').hidden = !cfg.username;
+  $('username').value = cfg.username || '';
+  $('username').focus();
+}
+function closeEditor() { $('connect-form').hidden = true; renderWho(); }
 
+async function connect() {
+  await api('/api/connect', { method: 'POST', body: JSON.stringify({ username: cfg.username }) }).catch((err) => toast(err.message, 'err'));
+}
+
+$('btn-change').addEventListener('click', openEditor);
+$('btn-cancel-change').addEventListener('click', closeEditor);
+$('btn-connect').addEventListener('click', connect);
+$('btn-disconnect').addEventListener('click', () => api('/api/disconnect', { method: 'POST' }));
+$('connect-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = $('username').value.replace(/^@/, '').trim();
+  if (!username) return;
+  cfg = await api('/api/config', { method: 'PUT', body: JSON.stringify({ username }) });
+  closeEditor();
+  toast(`@${username} salvo. Conectando…`);
+  connect();
+});
+for (const id of ['auto-connect', 'auto-retry']) {
+  $(id).addEventListener('change', async () => {
+    cfg = await api('/api/config', { method: 'PUT', body: JSON.stringify({ autoConnect: $('auto-connect').checked, autoRetry: $('auto-retry').checked }) });
+    toast('Preferência salva.');
+  });
+}
+
+// ---------- números ----------
+const shown = {};
+function setStat(id, value) {
+  const el = $(id);
+  const to = Number(value) || 0;
+  const from = shown[id] ?? 0;
+  if (from === to) { el.textContent = formatNumber(to); return; }
+  shown[id] = to;
+  if (to > from && from > 0) { const card = el.parentElement; card.classList.remove('bump'); void card.offsetWidth; card.classList.add('bump'); }
+  const t0 = performance.now();
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / 500);
+    el.textContent = formatNumber(Math.round(from + (to - from) * (1 - (1 - p) ** 3)));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function renderStatus(s) {
+  if (!s) return;
+  status = s;
+  setStat('st-viewers', s.state === 'conectado' ? s.viewers : 0);
+  renderWho();
+}
+
+// ---------- feed ----------
+const filters = new Set(['chat', 'gift', 'follow', 'share']);
+const recentEvents = [];
+function addToFeed(ev, store = true) {
+  if (ev.streaking) return;
+  if (store) { recentEvents.push(ev); if (recentEvents.length > 300) recentEvents.shift(); }
+  if (!filters.has(ev.type)) return;
   const feed = $('feed');
   feed.querySelector('.empty')?.remove();
   const li = document.createElement('li');
   li.className = `ev ${ev.type}`;
   const avatar = ev.user?.avatar
-    ? `<img class="avatar" src="${escapeHtml(ev.user.avatar)}" alt="">`
+    ? `<img class="avatar" src="${escapeHtml(ev.user.avatar)}" alt="" loading="lazy">`
     : `<span class="avatar">${escapeHtml(initials(ev.user?.nickname))}</span>`;
   const time = new Date(ev.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   li.innerHTML = `${avatar}
@@ -36,112 +112,41 @@ function addToFeed(ev) {
     <div>${escapeHtml(describe(ev))}${ev.simulated ? ' <span class="tag">teste</span>' : ''}</div></div>
     <time>${time}</time>`;
   feed.prepend(li);
-  while (feed.children.length > 200) feed.lastChild.remove();
+  while (feed.children.length > 150) feed.lastChild.remove();
 }
-
-// Prévia: cada overlay roda num iframe reduzido, recebendo os mesmos
-// eventos ao vivo. Editar o link (ex.: ?top=3) atualiza a prévia.
-const PREVIEW_MAX_W = 320;
-const PREVIEW_MAX_H = 240;
-
-function previewHtml(o) {
-  const [w, h] = String(o.size).split('x').map((n) => parseInt(n, 10) || 400);
-  const scale = Math.min(PREVIEW_MAX_W / w, PREVIEW_MAX_H / h, 1);
-  return `<div class="preview" style="width:${Math.round(w * scale)}px;height:${Math.round(h * scale)}px">
-    <iframe src="/overlay/${o.slug}?previa=1" title="Prévia ${escapeHtml(o.name)}" tabindex="-1"
-      style="width:${w}px;height:${h}px;transform:scale(${scale})"></iframe>
-  </div>`;
+function redrawFeed() {
+  $('feed').innerHTML = '<li class="empty">Nenhum evento ainda.</li>';
+  recentEvents.forEach((ev) => addToFeed(ev, false));
 }
-
-function renderOverlays(list, port) {
-  const base = `http://localhost:${port}`;
-  $('overlays').innerHTML = list.map((o) => `
-    <li class="${o.ready ? '' : 'soon'}" data-slug="${o.slug}">
-      <div class="ov-info">
-        <b>${escapeHtml(o.name)}</b> ${o.ready ? '' : '<span class="tag">em breve</span>'}
-        <p>${escapeHtml(o.description)} <span class="size">Tamanho sugerido: ${escapeHtml(o.size)}</span>${o.options && o.ready && !o.tab ? `<span class="size">Opções no link: <code>${escapeHtml(o.options)}</code></span>` : ''}</p>
-        ${o.tab ? `<a class="button secondary" href="${o.tab}">Abrir aba ${escapeHtml(o.name)}</a>` : ''}
-        ${o.themes ? `<div class="theme-row">Tema ${themeSelect('')}</div>` : ''}
-        ${o.ready && !o.tab ? `<div class="row link-row">
-          <input class="ov-link" value="${base}/overlay/${o.slug}" spellcheck="false" title="Dá pra editar: junte opções no fim, ex. ?top=3">
-          <button class="secondary" data-copy>Copiar</button>
-          <a class="secondary button ov-open" href="/overlay/${o.slug}" target="_blank">Abrir</a>
-        </div>` : ''}
-      </div>
-      ${o.ready && !o.tab ? `<div class="ov-preview"><span class="preview-label">Prévia ao vivo</span>${previewHtml(o)}</div>` : ''}
-    </li>`).join('');
-}
-
-// Escolher o tema muda o link (?tema=...) e a prévia.
-document.addEventListener('change', (e) => {
-  const sel = e.target.closest('.overlays .theme-select');
-  if (!sel) return;
-  const input = sel.closest('li').querySelector('.ov-link');
-  input.value = withTheme(input.value, sel.value);
-  input.dispatchEvent(new Event('input', { bubbles: true }));
+$('feed-filters').addEventListener('click', (e) => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  b.classList.toggle('on');
+  if (b.classList.contains('on')) filters.add(b.dataset.f); else filters.delete(b.dataset.f);
+  redrawFeed();
 });
+$('btn-clear-feed').addEventListener('click', () => { recentEvents.length = 0; redrawFeed(); });
 
-// Atualiza a prévia e o botão Abrir quando o link é editado.
-let linkTimer;
-document.addEventListener('input', (e) => {
-  const input = e.target.closest('.ov-link');
-  if (!input) return;
-  clearTimeout(linkTimer);
-  linkTimer = setTimeout(() => {
-    const li = input.closest('li');
-    const sel = li.querySelector('.theme-select');
-    if (sel && sel.value !== themeOf(input.value)) sel.value = themeOf(input.value);
-    let path, previewPath;
-    try {
-      const u = new URL(input.value);
-      if (!u.pathname.startsWith('/overlay/')) return;
-      path = u.pathname + u.search;
-      u.searchParams.set('previa', '1');
-      previewPath = u.pathname + u.search;
-    } catch { return; }
-    li.querySelector('iframe').src = previewPath;
-    li.querySelector('.ov-open').href = path;
-  }, 400);
-});
-
-document.addEventListener('click', async (e) => {
-  const copy = e.target.closest('[data-copy]');
-  if (copy) {
-    const input = copy.parentElement.querySelector('input');
-    try { await navigator.clipboard.writeText(input.value); copy.textContent = 'Copiado!'; }
-    catch { input.select(); document.execCommand('copy'); copy.textContent = 'Copiado!'; }
-    setTimeout(() => (copy.textContent = 'Copiar'), 1500);
-  }
-  const test = e.target.closest('[data-test]');
-  if (test) fetch(`/api/test/${test.dataset.test}`, { method: 'POST' });
-});
-
-$('connect-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const res = await fetch('/api/connect', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: $('username').value }),
-  });
-  if (!res.ok) $('status-detail').textContent = (await res.json()).error;
-});
+// ---------- rankings ----------
+const rankList = (rows) => rows.length
+  ? rows.slice(0, 10).map((u) => `<li><span title="@${escapeHtml(u.username)}">${escapeHtml(u.nickname)}</span><b>${formatNumber(u.value)}</b></li>`).join('')
+  : '<li class="vazio">Ninguém ainda.</li>';
 
 function renderRankings(r) {
   if (!r) return;
-  $('likes').textContent = (r.totals.likes || 0).toLocaleString('pt-BR');
-  $('coins').textContent = (r.totals.coins || 0).toLocaleString('pt-BR');
-  for (const kind of ['likes', 'coins']) {
-    const rows = r[kind].slice(0, 10);
-    $(`rank-${kind}`).innerHTML = rows.length
-      ? rows.map((u) => `<li><span title="@${escapeHtml(u.username)}">${escapeHtml(u.nickname)}</span><b>${formatNumber(u.value)}</b></li>`).join('')
-      : '<li class="vazio">Ninguém ainda.</li>';
-  }
+  const t = r.totals || {};
+  setStat('st-likes', t.likes);
+  setStat('st-coins', t.coins);
+  setStat('st-follows', t.follows);
+  setStat('st-shares', t.shares);
+  setStat('st-gifts', t.gifts);
+  setStat('st-peak', t.peakViewers);
+  $('rank-likes').innerHTML = rankList(r.likes);
+  $('rank-coins').innerHTML = rankList(r.coins);
 }
 
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const monthName = (key) => { const [y, m] = key.split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; };
-const rankList = (rows) => rows.length
-  ? rows.slice(0, 10).map((u) => `<li><span title="@${escapeHtml(u.username)}">${escapeHtml(u.nickname)}</span><b>${formatNumber(u.value)}</b></li>`).join('')
-  : '<li class="vazio">Ninguém ainda.</li>';
 
 function renderMonthly(r) {
   if (!r) return;
@@ -151,9 +156,11 @@ function renderMonthly(r) {
 }
 
 async function loadMonthlyExtras() {
-  const m = await (await fetch('/api/mensal')).json();
+  const m = await api('/api/mensal');
   renderMonthly(m);
-  if (document.activeElement !== $('my-username')) $('my-username').value = m.myUsername || '';
+  $('month-who').innerHTML = m.myUsername
+    ? `Conta só as lives de <b>@${escapeHtml(m.myUsername)}</b> e zera todo dia 1º. Dá pra trocar em <a href="/painel/config.html">Configurações</a>.`
+    : 'Ainda sem o seu @: ele é preenchido na primeira vez que você conecta.';
   $('month-history').innerHTML = m.history.length
     ? m.history.map((h) => `<div class="mes"><b>${monthName(h.month)} <span class="tag">${escapeHtml(h.label)}</span></b>
         <div class="rankings"><ol class="rank">${rankList(h.likes)}</ol><ol class="rank">${rankList(h.coins)}</ol></div></div>`).join('')
@@ -161,21 +168,22 @@ async function loadMonthlyExtras() {
 }
 
 $('btn-reset-month').addEventListener('click', async () => {
-  if (!confirm('Zerar o ranking mensal? O que tem agora vai pro histórico.')) return;
-  await fetch('/api/mensal/reset', { method: 'POST' });
+  if (!(await ask('Zerar o ranking do mês? O que tem agora vai pro histórico.', { ok: 'Zerar', danger: true }))) return;
+  await api('/api/mensal/reset', { method: 'POST' });
   await loadMonthlyExtras();
+  toast('Ranking do mês zerado.');
+});
+$('btn-reset').addEventListener('click', async () => {
+  if (!(await ask('Zerar os rankings de likes e coins desta live?', { ok: 'Zerar', danger: true }))) return;
+  await api('/api/rankings/reset', { method: 'POST' });
+  toast('Rankings da live zerados.');
 });
 
-$('my-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  await fetch('/api/mensal/meu-usuario', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: $('my-username').value }) });
-  await loadMonthlyExtras();
+// ---------- testes ----------
+document.addEventListener('click', (e) => {
+  const test = e.target.closest('[data-test]');
+  if (test) fetch(`/api/test/${test.dataset.test}`, { method: 'POST' });
 });
-
-$('btn-reset').addEventListener('click', () => {
-  if (confirm('Zerar os rankings de likes e coins desta live?')) fetch('/api/rankings/reset', { method: 'POST' });
-});
-
 $('test-comment').addEventListener('submit', (e) => {
   e.preventDefault();
   const comment = $('test-comment-text').value.trim();
@@ -184,19 +192,21 @@ $('test-comment').addEventListener('submit', (e) => {
   $('test-comment-text').value = '';
 });
 
-$('btn-disconnect').addEventListener('click', () => fetch('/api/disconnect', { method: 'POST' }));
-
-const info = await (await fetch('/api/status')).json();
-if (info.config?.username) $('username').value = info.config.username;
-renderOverlays(info.overlays, info.port);
+// ---------- carregar ----------
+cfg = await api('/api/config');
+$('auto-connect').checked = cfg.autoConnect;
+$('auto-retry').checked = cfg.autoRetry;
+const info = await api('/api/status');
 renderStatus(info.status);
 loadMonthlyExtras();
 
 connectLive({
-  onHello: ({ status, recent, rankings, monthly }) => { renderStatus(status); renderRankings(rankings); renderMonthly(monthly); $('feed').innerHTML = '<li class="empty">Nenhum evento ainda.</li>'; recent.forEach(addToFeed); },
+  onHello: ({ status: s, recent, rankings, monthly }) => {
+    renderStatus(s); renderRankings(rankings); renderMonthly(monthly);
+    recentEvents.length = 0; recent.forEach((ev) => recentEvents.push(ev)); redrawFeed();
+  },
   onEvent: addToFeed,
   onStatus: renderStatus,
   onRankings: renderRankings,
   onMonthly: renderMonthly,
-  onSocket: (ok) => { if (!ok) renderStatus({ state: 'erro', message: 'O app foi fechado. Abra o TikSoda de novo.' }); },
 });

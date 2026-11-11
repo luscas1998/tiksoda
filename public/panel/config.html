@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Configurações</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body data-page="config" data-title="Configurações" data-sub="Conta, desempenho e backup">
+<script src="shell.js"></script>
+
+<main>
+  <section class="card">
+    <h2>Conta</h2>
+    <div class="settings">
+      <div class="setting">
+        <div class="txt"><b>@ da live</b><span>Fica salvo até você trocar. É nele que o app conecta.</span></div>
+        <form class="row" id="f-user" style="max-width:260px"><span class="at">@</span><input id="username" placeholder="seu_usuario"><button class="small" type="submit">Salvar</button></form>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>@ do ranking do mês</b><span>O ranking mensal só conta as lives deste @.</span></div>
+        <form class="row" id="f-my" style="max-width:260px"><span class="at">@</span><input id="my-username" placeholder="seu_usuario"><button class="small" type="submit">Salvar</button></form>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>Conectar sozinho quando o app abrir</b><span>Abriu o TikSoda, ele já entra na sua live.</span></div>
+        <label class="switch"><input type="checkbox" id="auto-connect"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>Esperar a live começar</b><span>Se a live não estiver no ar, cair ou terminar, tenta de novo a cada 30 segundos.</span></div>
+        <label class="switch"><input type="checkbox" id="auto-retry"><span></span></label>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Desempenho</h2>
+    <div class="settings">
+      <div class="setting">
+        <div class="txt"><b>Prévias ao vivo no painel</b><span>Desligue em PCs mais fracos. Os overlays no LIVE Studio continuam normais.</span></div>
+        <label class="switch"><input type="checkbox" id="previews"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>Animações do painel</b><span>Desligue pra um painel mais seco e leve.</span></div>
+        <label class="switch"><input type="checkbox" id="anims"><span></span></label>
+      </div>
+    </div>
+    <p class="hint">As prévias só carregam quando aparecem na tela e param quando você rola pra longe, então o painel já gasta pouco mesmo ligado.</p>
+  </section>
+
+  <section class="card">
+    <h2>Backup</h2>
+    <p class="hint" style="margin-top:0">Guarda ações, metas, roletas, TTS, ranking do mês, lista de presentes e o seu @ num arquivo. Use antes de trocar de PC ou de versão. Os áudios e vídeos ficam na pasta <code>midia</code> dentro da pasta de dados: copie ela junto.</p>
+    <div class="row wrap" style="margin-top:12px">
+      <a class="button" href="/api/backup" download>Baixar backup</a>
+      <label class="button secondary">Restaurar backup<input type="file" id="restore" accept=".json,application/json" hidden></label>
+    </div>
+  </section>
+
+  <section class="card" id="win-card" hidden>
+    <h2>Windows</h2>
+    <div class="settings">
+      <div class="setting">
+        <div class="txt"><b>Atalho na área de trabalho</b><span>Ícone do TikSoda na área de trabalho.</span></div>
+        <label class="switch"><input type="checkbox" data-atalho="desktop"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>Atalho no menu Iniciar</b><span>Aparece quando você pesquisa "TikSoda" no Iniciar.</span></div>
+        <label class="switch"><input type="checkbox" data-atalho="menu"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>Abrir junto com o Windows</b><span>Ligou o PC, o TikSoda já fica esperando a sua live.</span></div>
+        <label class="switch"><input type="checkbox" data-atalho="iniciar"><span></span></label>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Sobre</h2>
+    <div class="settings">
+      <div class="setting"><div class="txt"><b>Versão</b><span id="ver"></span></div></div>
+      <div class="setting">
+        <div class="txt"><b>Pasta de dados</b><span class="path" id="data-dir"></span></div>
+        <button class="secondary small" id="open-dir">Abrir pasta</button>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>Fechar o TikSoda</b><span>Para tudo, inclusive os overlays.</span></div>
+        <button class="danger small" id="quit">Fechar</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="config.js"></script>
+</body>
+</html>

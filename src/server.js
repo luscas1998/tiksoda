@@ -1,8 +1,9 @@
 import express from 'express';
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import http from 'node:http';
+import { ROOT, DATA_DIR, PACKAGED, setupLog, openPanel, openFolder, shortcutsSupported, shortcutExists, setShortcut } from './app.js';
 import { WebSocketServer } from 'ws';
 import { LiveManager } from './live.js';
 import { simulate, simulateCombo } from './simulate.js';
@@ -17,8 +18,9 @@ import { importTikTokGifts } from './giftImport.js';
 import { TextToSpeech } from './tts.js';
 import { Wheels } from './wheels.js';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DATA_DIR = path.join(ROOT, 'data');
+setupLog();
+const VERSION = '0.6.0';
+const OPEN_PANEL = PACKAGED || process.argv.includes('--abrir');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const PORT = Number(process.env.PORT) || 3330;
 
@@ -26,6 +28,9 @@ const PORT = Number(process.env.PORT) || 3330;
 function loadConfig() {
   try { return JSON.parse(readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
 }
+// username: o @ da live (fica salvo até você trocar)
+// autoConnect: conectar sozinho quando o app abre · autoRetry: esperar a live começar / reconectar se cair
+function publicConfig() { return { autoConnect: true, autoRetry: true, ...loadConfig() }; }
 function saveConfig(patch) {
   const cfg = { ...loadConfig(), ...patch };
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
@@ -61,6 +66,7 @@ const monthly = new MonthlyRanking(DATA_DIR);
 const tts = new TextToSpeech(DATA_DIR);
 const wheels = new Wheels(DATA_DIR, media);
 let config = loadConfig();
+live.autoRetry = publicConfig().autoRetry;
 
 // Quantos coins a pessoa já mandou nesta live (pra regras "só quem mandou presente").
 const coinsOf = (user) => session.data.users[user?.id || user?.username]?.coins || 0;
@@ -71,7 +77,76 @@ const recent = [];
 const RECENT_MAX = 50;
 
 app.get('/api/status', (_req, res) => {
-  res.json({ status: live.status, config: loadConfig(), overlays: OVERLAYS, port: PORT });
+  res.json({ status: live.status, config: publicConfig(), overlays: OVERLAYS, port: PORT, version: VERSION, dataDir: DATA_DIR, packaged: PACKAGED });
+});
+
+// ---------- configurações gerais ----------
+// username: o @ da live (fica salvo até você trocar)
+// autoConnect: conectar sozinho quando o app abre · autoRetry: esperar a live começar / reconectar se cair
+
+app.get('/api/config', (_req, res) => res.json(publicConfig()));
+app.put('/api/config', (req, res) => {
+  const b = req.body || {};
+  const patch = {};
+  if ('username' in b) patch.username = String(b.username || '').replace(/^@/, '').trim().slice(0, 60);
+  if ('autoConnect' in b) patch.autoConnect = !!b.autoConnect;
+  if ('autoRetry' in b) patch.autoRetry = !!b.autoRetry;
+  config = saveConfig(patch);
+  live.autoRetry = publicConfig().autoRetry;
+  res.json(publicConfig());
+});
+
+app.post('/api/abrir-pasta', (_req, res) => { openFolder(DATA_DIR); res.json({ ok: true }); });
+
+// Atalhos na área de trabalho, no menu Iniciar e pra abrir junto com o Windows (só no .exe).
+app.get('/api/atalhos', (_req, res) => res.json({
+  supported: shortcutsSupported(),
+  desktop: shortcutExists('desktop'), menu: shortcutExists('menu'), iniciar: shortcutExists('iniciar'),
+}));
+app.post('/api/atalhos', (req, res) => {
+  try { setShortcut(String(req.body?.onde), !!req.body?.ativo); res.json({ ok: true }); }
+  catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// Fecha o app (o .exe não tem janela preta pra fechar).
+app.post('/api/sair', (_req, res) => {
+  res.json({ ok: true });
+  setTimeout(shutdown, 300);
+});
+
+// ---------- backup das configurações ----------
+// Ações, metas, roletas, TTS, ranking mensal e o @. As mídias ficam em data/midia (copie a pasta).
+const BACKUP_FILES = ['config.json', 'acoes.json', 'metas.json', 'roletas.json', 'tts.json', 'mensal.json', 'gifts.json'];
+app.get('/api/backup', (_req, res) => {
+  const files = {};
+  for (const f of BACKUP_FILES) {
+    try { files[f] = JSON.parse(readFileSync(path.join(DATA_DIR, f), 'utf8')); } catch { /* não existe ainda */ }
+  }
+  res.setHeader('Content-Disposition', `attachment; filename="tiksoda-backup-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.json({ app: 'TikSoda', version: VERSION, savedAt: new Date().toISOString(), files });
+});
+app.post('/api/backup', express.json({ limit: '50mb' }), (req, res) => {
+  const files = req.body?.files;
+  if (req.body?.app !== 'TikSoda' || !files || typeof files !== 'object') return res.status(400).json({ error: 'Esse arquivo não é um backup do TikSoda.' });
+  const restored = [];
+  for (const f of BACKUP_FILES) {
+    if (!files[f] || typeof files[f] !== 'object') continue;
+    writeFileSync(path.join(DATA_DIR, f), JSON.stringify(files[f], null, 2));
+    restored.push(f);
+  }
+  // Recarrega o que está em memória.
+  config = loadConfig();
+  actions.store.data = actions.store.load();
+  goals.store.data = goals.store.load();
+  wheels.store.data = wheels.store.load();
+  tts.store.data = { ...tts.store.load() };
+  tts.update({});
+  gifts.store.data = gifts.store.load();
+  monthly.store.data = monthly.store.load();
+  monthly.changed = true;
+  broadcast({ kind: 'goals', goals: goals.publicList() });
+  broadcast({ kind: 'wheels', wheels: wheels.list() });
+  res.json({ ok: true, restored });
 });
 
 app.post('/api/connect', async (req, res) => {
@@ -278,6 +353,9 @@ wss.on('connection', (socket) => {
 
 live.on('event', publish);
 live.on('status', (status) => {
+  // Pico de espectadores da live.
+  const t = session.data.totals;
+  if (status.state === 'conectado' && (status.viewers || 0) > (t.peakViewers || 0)) { t.peakViewers = status.viewers; session.touch(); }
   if (status.state === 'conectado') {
     const newLive = status.roomId && session.data.roomId !== status.roomId;
     session.ensureRoom(status.roomId);
@@ -309,22 +387,48 @@ goals.on('complete', (g) => {
   }
 });
 
-const shutdown = () => { session.flush(); monthly.flush(); try { goals.store.save(); } catch {} process.exit(0); };
+function shutdown() {
+  session.flush(); monthly.flush();
+  try { goals.store.save(); } catch { /* sem disco */ }
+  live.disconnect().finally(() => process.exit(0));
+  setTimeout(() => process.exit(0), 1500);
+}
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
+const PANEL_URL = `http://localhost:${PORT}/painel/`;
+
 server.listen(PORT, '127.0.0.1', () => {
   console.log('');
-  console.log('  TikSoda rodando!');
-  console.log(`  Painel: http://localhost:${PORT}/painel/`);
+  console.log(`  TikSoda ${VERSION} rodando!`);
+  console.log(`  Painel: ${PANEL_URL}`);
+  console.log(`  Dados: ${DATA_DIR}`);
   console.log('  Deixe esta janela aberta durante a live.');
   console.log('');
+  if (OPEN_PANEL) openPanel(PANEL_URL);
+  // Conecta sozinho no @ salvo.
+  const cfg = publicConfig();
+  if (cfg.autoConnect && cfg.username) live.connect(cfg.username).catch((err) => console.error(err));
 });
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`A porta ${PORT} já está em uso. O TikSoda já está aberto em outra janela?`);
-    process.exit(1);
+    // Já tem um TikSoda aberto? Então só mostra o painel dele.
+    http.get(`http://127.0.0.1:${PORT}/api/status`, (res) => {
+      if (res.statusCode === 200) {
+        if (OPEN_PANEL) openPanel(PANEL_URL);
+        console.log('O TikSoda já está aberto.');
+        setTimeout(() => process.exit(0), 1500);
+      } else {
+        console.error(`A porta ${PORT} está sendo usada por outro programa.`);
+        process.exit(1);
+      }
+      res.resume();
+    }).on('error', () => {
+      console.error(`A porta ${PORT} está sendo usada por outro programa.`);
+      process.exit(1);
+    });
+    return;
   }
   throw err;
 });

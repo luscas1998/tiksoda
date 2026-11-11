@@ -16,11 +16,7 @@ let rules = [];
 let chosenGift = null; // { giftId, giftName, image }
 
 // ---------- status no topo ----------
-const STATE_LABEL = { desconectado: 'Desconectado', conectando: 'Conectando…', conectado: 'Ao vivo', erro: 'Erro' };
-function renderStatus(s) {
-  $('status').className = `status ${s.state}`;
-  $('status-text').textContent = s.state === 'conectado' ? `Ao vivo · @${s.username}` : STATE_LABEL[s.state] || s.state;
-}
+function renderStatus() { /* o status aparece no topo (shell.js) */ }
 
 // ---------- presentes ----------
 function giftTile(g, selected) {
@@ -84,9 +80,9 @@ $('media').addEventListener('click', async (e) => {
   } else if (t.dataset.send) {
     await api(`/api/midia/${encodeURIComponent(t.dataset.send)}/tocar`, { method: 'POST' });
   } else if (t.dataset.delMedia) {
-    if (!confirm(`Apagar ${t.dataset.delMedia}?`)) return;
+    if (!await ask(`Apagar ${t.dataset.delMedia}?`, { ok: 'Apagar', danger: true })) return;
     try { await api(`/api/midia/${encodeURIComponent(t.dataset.delMedia)}`, { method: 'DELETE' }); await loadMedia(); }
-    catch (err) { alert(err.message); }
+    catch (err) { toast(err.message, 'err'); }
   }
 });
 
@@ -201,7 +197,7 @@ $('rules').addEventListener('click', async (e) => {
     } else if (e.target.matches('[data-test]')) {
       await api(`/api/acoes/${r.id}/testar`, { method: 'POST' });
     } else if (e.target.matches('[data-del]')) {
-      if (!confirm('Apagar esta ação?')) return;
+      if (!await ask('Apagar esta ação?', { ok: 'Apagar', danger: true })) return;
       await api(`/api/acoes/${r.id}`, { method: 'DELETE' });
       await loadRules();
     } else if (e.target.matches('[data-edit]')) {
@@ -225,7 +221,7 @@ $('rules').addEventListener('click', async (e) => {
       formMsg('Editando ação.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  } catch (err) { alert(err.message); }
+  } catch (err) { toast(err.message, 'err'); }
 });
 
 // ---------- carregar ----------

@@ -2,13 +2,16 @@
 // Reconecta sozinho se o app for fechado e aberto de novo.
 export function connectLive({ onHello, onEvent, onStatus, onRankings, onMonthly, onGoals, onGoalComplete, onPlay, onTts, onTtsControl, onTtsLog, onWheels, onWheelSpin, onSocket } = {}) {
   let retry = 500;
+  // O painel (shell.js) escuta estes eventos pra mostrar o status no topo.
+  const emit = (name, detail) => { try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch { /* overlay */ } };
   function open() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
-    ws.onopen = () => { retry = 500; onSocket?.(true); };
+    ws.onopen = () => { retry = 500; onSocket?.(true); emit('tiksoda:socket', true); };
     ws.onmessage = (msg) => {
       let data;
       try { data = JSON.parse(msg.data); } catch { return; }
+      if (data.kind === 'hello' || data.kind === 'status') emit('tiksoda:status', data.status);
       if (data.kind === 'hello') onHello?.(data);
       else if (data.kind === 'event') onEvent?.(data.event);
       else if (data.kind === 'status') onStatus?.(data.status);
@@ -25,6 +28,7 @@ export function connectLive({ onHello, onEvent, onStatus, onRankings, onMonthly,
     };
     ws.onclose = () => {
       onSocket?.(false);
+      emit('tiksoda:socket', false);
       setTimeout(open, retry);
       retry = Math.min(retry * 2, 5000);
     };

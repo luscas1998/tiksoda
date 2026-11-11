@@ -23,6 +23,6 @@ if errorlevel 1 (
   exit /b 1
 )
 
-start "" http://localhost:3330/painel/
-node src/server.js
+
+node src/server.js --abrir
 pause

@@ -73,6 +73,15 @@ export const OVERLAYS = [
     themes: true,
   },
   {
+    slug: 'contadores',
+    name: 'Contadores',
+    description: 'Likes, seguidores, shares e coins da live (e quem está assistindo), com o último seguidor e o último presente se quiser.',
+    size: '700 x 120',
+    options: 'itens=likes,follows,shares,coins,viewers,gifts · coluna=1 · tamanho=28 · legenda=0 · ultimo=1',
+    ready: true,
+    themes: true,
+  },
+  {
     slug: 'metas',
     name: 'Metas',
     description: 'Metas de presente, likes, seguidores, shares ou coins, em 5 modelos (presente pulsando, barra, círculo, número, copo). Cada meta tem o seu link, criado na aba Metas.',

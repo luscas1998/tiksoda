@@ -54,7 +54,7 @@ export function setupGiftRefresh(button, msgEl, onDone) {
       const res = await fetch('/api/gifts/atualizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
       const data = await res.json();
       if (data.needUser) {
-        const u = prompt('Você não está conectado numa live. Digite o @ de alguém que esteja ao vivo agora (pode ser um criador grande):');
+        const u = await askText('Você não está conectado numa live. Digite o @ de alguém que esteja ao vivo agora (pode ser um criador grande):', '@usuario');
         if (u) return run(u);
         setMsg('');
         return;

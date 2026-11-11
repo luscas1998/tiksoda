@@ -3,92 +3,104 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TikSoda · Painel</title>
+<title>TikSoda · Início</title>
 <link rel="stylesheet" href="panel.css">
 </head>
-<body>
-<header>
-  <h1>TikSoda <span class="badge">v0.5</span></h1>
-  <nav class="tabs"><a href="/painel/" class="active">Live e overlays</a><a href="/painel/acoes.html">Ações</a><a href="/painel/metas.html">Metas</a><a href="/painel/roleta.html">Roleta</a><a href="/painel/tts.html">TTS</a></nav>
-  <div id="status" class="status desconectado"><span class="dot"></span><span id="status-text">Desconectado</span></div>
-</header>
+<body data-page="inicio" data-title="Início" data-sub="Sua live em tempo real">
+<script src="shell.js"></script>
 
 <main>
-  <section class="card">
-    <h2>Conectar na live</h2>
-    <form id="connect-form" class="row">
+  <section class="card connect-card">
+    <div class="who-box">
+      <div class="big-avatar" id="who-initial">@</div>
+      <div class="grow">
+        <div class="name" id="who-name">Nenhum @ salvo</div>
+        <div class="state" id="status-detail">Digite o seu @ pra começar.</div>
+      </div>
+      <div class="row wrap" id="who-actions">
+        <button type="button" id="btn-connect"></button>
+        <button type="button" class="secondary" id="btn-disconnect">Desconectar</button>
+        <button type="button" class="ghost" id="btn-change">Trocar @</button>
+      </div>
+    </div>
+    <form id="connect-form" class="row" hidden>
       <span class="at">@</span>
       <input id="username" placeholder="seu_usuario" autocomplete="off" required>
-      <button type="submit" id="btn-connect">Conectar</button>
-      <button type="button" id="btn-disconnect" class="secondary">Desconectar</button>
+      <button type="submit">Salvar e conectar</button>
+      <button type="button" class="secondary" id="btn-cancel-change">Cancelar</button>
     </form>
-    <p class="hint" id="status-detail">A live precisa estar no ar. Pra testar sem live, use os botões de teste abaixo.</p>
-    <div class="stats">
-      <div><strong id="viewers">0</strong><span>espectadores</span></div>
-      <div><strong id="likes">0</strong><span>likes nesta live</span></div>
-      <div><strong id="coins">0</strong><span>coins nesta live</span></div>
+    <div class="toggles">
+      <label class="check"><span class="switch"><input type="checkbox" id="auto-connect"><span></span></span> Conectar sozinho quando o app abrir</label>
+      <label class="check"><span class="switch"><input type="checkbox" id="auto-retry"><span></span></span> Esperar a live começar e reconectar se cair</label>
     </div>
   </section>
 
+  <section class="card feed-card">
+    <div class="feed-head">
+      <h2 id="feed-title">Eventos ao vivo</h2>
+      <button class="ghost small" id="btn-clear-feed" title="Limpar a lista">Limpar</button>
+    </div>
+    <div class="filters" id="feed-filters">
+      <button class="chip on" data-f="chat">💬 Chat</button>
+      <button class="chip on" data-f="gift">🎁 Presentes</button>
+      <button class="chip on" data-f="follow">💗 Follows</button>
+      <button class="chip on" data-f="share">🔁 Shares</button>
+      <button class="chip" data-f="like">❤️ Likes</button>
+      <button class="chip" data-f="member">👋 Entradas</button>
+    </div>
+    <ul id="feed" class="feed"><li class="empty">Nenhum evento ainda.</li></ul>
+  </section>
+
+  <div class="stats" id="stats">
+    <div class="stat" style="--glow:rgba(37,244,238,.1)"><div class="ico">👁</div><strong id="st-viewers">0</strong><span>assistindo agora</span></div>
+    <div class="stat"><div class="ico">❤️</div><strong id="st-likes">0</strong><span>likes</span></div>
+    <div class="stat" style="--glow:rgba(255,201,60,.1)"><div class="ico">🪙</div><strong id="st-coins">0</strong><span>coins</span></div>
+    <div class="stat"><div class="ico">💗</div><strong id="st-follows">0</strong><span>novos seguidores</span></div>
+    <div class="stat" style="--glow:rgba(37,244,238,.1)"><div class="ico">🔁</div><strong id="st-shares">0</strong><span>shares</span></div>
+    <div class="stat" style="--glow:rgba(255,201,60,.1)"><div class="ico">🎁</div><strong id="st-gifts">0</strong><span>presentes</span></div>
+    <div class="stat" style="--glow:rgba(154,140,255,.12)"><div class="ico">📈</div><strong id="st-peak">0</strong><span>pico de pessoas</span></div>
+  </div>
 
   <section class="card">
     <div class="feed-head">
       <h2>Rankings desta live</h2>
-      <button class="secondary small" id="btn-reset">Zerar rankings</button>
+      <button class="secondary small" id="btn-reset">Zerar</button>
     </div>
-    <p class="hint">Zera sozinho quando você conecta numa live nova. Se fechar o app no meio da live, o ranking continua de onde parou.</p>
     <div class="rankings">
       <div><h3>❤️ Likes</h3><ol id="rank-likes" class="rank"></ol></div>
       <div><h3>🪙 Coins</h3><ol id="rank-coins" class="rank"></ol></div>
     </div>
+    <p class="hint">Zera sozinho quando você conecta numa live nova. Se fechar o app no meio da live, continua de onde parou.</p>
   </section>
 
   <section class="card">
     <div class="feed-head">
-      <h2>Ranking mensal <span class="tag" id="month-label"></span></h2>
-      <button class="secondary small" id="btn-reset-month">Zerar mensal</button>
+      <h2>Ranking do mês <span class="tag" id="month-label"></span></h2>
+      <button class="secondary small" id="btn-reset-month">Zerar mês</button>
     </div>
-    <form id="my-form" class="row" style="margin-top:8px">
-      <span class="hint" style="margin:0">Conta só as lives de</span>
-      <span class="at">@</span><input id="my-username" placeholder="seu_usuario" autocomplete="off">
-      <button class="secondary small" type="submit">Salvar</button>
-    </form>
-    <p class="hint">Zera sozinho todo dia 1º e no botão. O mês fechado vai pro histórico. Eventos de teste não contam.</p>
     <div class="rankings">
       <div><h3>❤️ Likes</h3><ol id="month-likes" class="rank"></ol></div>
       <div><h3>🪙 Coins</h3><ol id="month-coins" class="rank"></ol></div>
     </div>
-    <details class="history"><summary>Histórico</summary><div id="month-history"></div></details>
+    <p class="hint" id="month-who"></p>
+    <details class="history"><summary>Meses anteriores</summary><div id="month-history"></div></details>
   </section>
 
   <section class="card">
     <h2>Testar sem estar ao vivo</h2>
     <div class="row wrap">
-      <button class="secondary" data-test="chat">Comentário</button>
-      <button class="secondary" data-test="gift">Presente</button>
-      <button class="secondary" data-test="combo">Combo de rosas</button>
-      <button class="secondary" data-test="like">Likes</button>
-      <button class="secondary" data-test="follow">Follow</button>
-      <button class="secondary" data-test="share">Share</button>
+      <button class="secondary small" data-test="chat">💬 Comentário</button>
+      <button class="secondary small" data-test="gift">🎁 Presente</button>
+      <button class="secondary small" data-test="combo">🌹 Combo de rosas</button>
+      <button class="secondary small" data-test="like">❤️ Likes</button>
+      <button class="secondary small" data-test="follow">💗 Follow</button>
+      <button class="secondary small" data-test="share">🔁 Share</button>
     </div>
     <form id="test-comment" class="row" style="margin-top:10px">
       <input id="test-comment-text" placeholder="Comentário de teste, ex.: !falar oi gente" autocomplete="off">
-      <button class="secondary" type="submit">Enviar comentário</button>
+      <button class="secondary" type="submit">Enviar</button>
     </form>
-    <p class="hint">Use pra testar comandos do TTS e da roleta (ex.: <code>!falar boa noite</code>, <code>!roleta</code>).</p>
-  </section>
-
-  <section class="card feed-card">
-    <div class="feed-head">
-      <h2>Eventos ao vivo</h2>
-      <label class="check"><input type="checkbox" id="show-likes"> mostrar likes e entradas</label>
-    </div>
-    <ul id="feed" class="feed"><li class="empty">Nenhum evento ainda.</li></ul>
-  </section>
-  <section class="card overlays-card">
-    <h2>Overlays</h2>
-    <p class="hint">Cada overlay tem seu link. No TikTok LIVE Studio: <b>Adicionar fonte → Link</b>, cole o link e ajuste o tamanho. Pra mudar opções, edite o link aqui mesmo (ex.: <code>?top=3&amp;fundo=0</code>): a prévia ao lado atualiza e o Copiar já leva o link novo. Use os botões de teste pra ver as prévias em ação.</p>
-    <ul id="overlays" class="overlays"></ul>
+    <p class="hint">Aparece no painel e em todos os overlays abertos. Testes não contam no ranking do mês.</p>
   </section>
 </main>
 

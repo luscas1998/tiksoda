@@ -10,11 +10,7 @@ const api = async (url, opts = {}) => {
 };
 const radio = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value;
 const setRadio = (name, v) => { const el = document.querySelector(`input[name="${name}"][value="${v}"]`); if (el) el.checked = true; };
-const STATE_LABEL = { desconectado: 'Desconectado', conectando: 'Conectando…', conectado: 'Ao vivo', erro: 'Erro' };
-function renderStatus(s) {
-  $('status').className = `status ${s.state}`;
-  $('status-text').textContent = s.state === 'conectado' ? `Ao vivo · @${s.username}` : STATE_LABEL[s.state] || s.state;
-}
+function renderStatus() { /* o status aparece no topo (shell.js) */ }
 function formMsg(text, kind = '') { $('form-msg').className = `msg ${kind}`; $('form-msg').textContent = text; }
 
 let isWindows = false;

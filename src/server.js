@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
-import { ROOT, DATA_DIR, PACKAGED, setupLog, openPanel } from './app.js';
+import { ROOT, DATA_DIR, PACKAGED, setupLog, openPanel, openFolder, shortcutsSupported, shortcutExists, setShortcut } from './app.js';
 import { WebSocketServer } from 'ws';
 import { LiveManager } from './live.js';
 import { simulate, simulateCombo } from './simulate.js';
@@ -94,6 +94,18 @@ app.put('/api/config', (req, res) => {
   config = saveConfig(patch);
   live.autoRetry = publicConfig().autoRetry;
   res.json(publicConfig());
+});
+
+app.post('/api/abrir-pasta', (_req, res) => { openFolder(DATA_DIR); res.json({ ok: true }); });
+
+// Atalhos na área de trabalho, no menu Iniciar e pra abrir junto com o Windows (só no .exe).
+app.get('/api/atalhos', (_req, res) => res.json({
+  supported: shortcutsSupported(),
+  desktop: shortcutExists('desktop'), menu: shortcutExists('menu'), iniciar: shortcutExists('iniciar'),
+}));
+app.post('/api/atalhos', (req, res) => {
+  try { setShortcut(String(req.body?.onde), !!req.body?.ativo); res.json({ ok: true }); }
+  catch (err) { res.status(400).json({ error: err.message }); }
 });
 
 // Fecha o app (o .exe não tem janela preta pra fechar).

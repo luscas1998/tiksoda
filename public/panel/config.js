@@ -60,6 +60,24 @@ $('restore').addEventListener('change', async () => {
   $('restore').value = '';
 });
 
+$('open-dir').addEventListener('click', () => api('/api/abrir-pasta', { method: 'POST' }).then(() => toast('Pasta aberta.')).catch((e) => toast(e.message, 'err')));
+
+async function loadShortcuts() {
+  const a = await api('/api/atalhos').catch(() => ({}));
+  if (!a.supported) return;
+  $('win-card').hidden = false;
+  for (const el of document.querySelectorAll('[data-atalho]')) el.checked = !!a[el.dataset.atalho];
+}
+for (const el of document.querySelectorAll('[data-atalho]')) {
+  el.addEventListener('change', async () => {
+    try {
+      await api('/api/atalhos', { method: 'POST', body: JSON.stringify({ onde: el.dataset.atalho, ativo: el.checked }) });
+      toast(el.checked ? 'Atalho criado.' : 'Atalho removido.');
+    } catch (err) { el.checked = !el.checked; toast(err.message, 'err'); }
+  });
+}
+loadShortcuts();
+
 $('quit').addEventListener('click', () => document.getElementById('btn-quit').click());
 
 load();

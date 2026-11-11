@@ -56,11 +56,32 @@
     </div>
   </section>
 
+  <section class="card" id="win-card" hidden>
+    <h2>Windows</h2>
+    <div class="settings">
+      <div class="setting">
+        <div class="txt"><b>Atalho na área de trabalho</b><span>Ícone do TikSoda na área de trabalho.</span></div>
+        <label class="switch"><input type="checkbox" data-atalho="desktop"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>Atalho no menu Iniciar</b><span>Aparece quando você pesquisa "TikSoda" no Iniciar.</span></div>
+        <label class="switch"><input type="checkbox" data-atalho="menu"><span></span></label>
+      </div>
+      <div class="setting">
+        <div class="txt"><b>Abrir junto com o Windows</b><span>Ligou o PC, o TikSoda já fica esperando a sua live.</span></div>
+        <label class="switch"><input type="checkbox" data-atalho="iniciar"><span></span></label>
+      </div>
+    </div>
+  </section>
+
   <section class="card">
     <h2>Sobre</h2>
     <div class="settings">
       <div class="setting"><div class="txt"><b>Versão</b><span id="ver"></span></div></div>
-      <div class="setting"><div class="txt"><b>Pasta de dados</b><span class="path" id="data-dir"></span></div></div>
+      <div class="setting">
+        <div class="txt"><b>Pasta de dados</b><span class="path" id="data-dir"></span></div>
+        <button class="secondary small" id="open-dir">Abrir pasta</button>
+      </div>
       <div class="setting">
         <div class="txt"><b>Fechar o TikSoda</b><span>Para tudo, inclusive os overlays.</span></div>
         <button class="danger small" id="quit">Fechar</button>

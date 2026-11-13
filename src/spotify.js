@@ -11,7 +11,7 @@ import { JsonStore } from './store.js';
 
 const API = 'https://api.spotify.com/v1';
 const ACCOUNTS = 'https://accounts.spotify.com';
-const SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state';
+const SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-read-private';
 
 // Quem pode: 'todos' libera geral; senão basta a pessoa ser de um dos grupos marcados.
 export const WHO = ['todos', 'seguidor', 'amigo', 'fa', 'assinante', 'moderador', 'presente'];
@@ -89,6 +89,12 @@ export class Spotify extends EventEmitter {
   }
 
   get config() { return this.store.data; }
+  // Login feito com uma versão antiga (sem todas as permissões): precisa conectar de novo.
+  get needsReconnect() {
+    const granted = this.login.data.scope;
+    return this.connected && (granted === '' || (!!granted && SCOPES.split(' ').some((x) => !granted.split(' ').includes(x))));
+  }
+
   get connected() { return !!(this.config.clientId && this.login.data.refreshToken); }
 
   update(input = {}) {
@@ -126,6 +132,7 @@ export class Spotify extends EventEmitter {
       pending: this.pending,
       votes: { count: this.votes.size, needed: this.config.skipVotes },
       error: this.lastError,
+      needsReconnect: this.needsReconnect,
     };
   }
 
@@ -191,7 +198,10 @@ export class Spotify extends EventEmitter {
       throw new Error(data.error_description || data.error || `Spotify respondeu ${res.status}`);
     }
     this.access = { token: data.access_token, expiresAt: Date.now() + (data.expires_in - 60) * 1000 };
-    if (data.refresh_token) { this.login.data = { refreshToken: data.refresh_token }; this.login.save(); }
+    if (data.refresh_token || data.scope) {
+      this.login.data = { ...this.login.data, ...(data.refresh_token ? { refreshToken: data.refresh_token } : {}), ...(data.scope ? { scope: data.scope } : {}) };
+      this.login.save();
+    }
   }
 
   async accessToken() {
@@ -225,6 +235,10 @@ export class Spotify extends EventEmitter {
       const msg = data?.error?.message || '';
       if (reason === 'NO_ACTIVE_DEVICE' || (res.status === 404 && /device/i.test(msg))) throw new Error('Nenhum Spotify tocando. Abra o Spotify no PC e dê play numa música.');
       if (reason === 'PREMIUM_REQUIRED') throw new Error('Pôr na fila e pular só funciona com Spotify Premium.');
+      if (/scope/i.test(msg)) {
+        this.login.data = { ...this.login.data, scope: '' };
+        throw new Error('Falta permissão no login do Spotify. Na aba Música, clique em Desconectar e depois em Conectar Spotify de novo.');
+      }
       if (res.status === 403) throw new Error(`O Spotify não deixou (${msg || 'sem permissão'}). Se o app do Spotify for novo, confira se o seu e-mail está em "User Management" no site de desenvolvedor.`);
       throw new Error(msg || `Spotify respondeu ${res.status}`);
     }
@@ -365,9 +379,9 @@ export class Spotify extends EventEmitter {
     let track;
     try {
       const link = query.match(/(?:open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/|spotify:track:)([A-Za-z0-9]{22})/);
-      if (link) track = trackOf(await this.api('GET', `/tracks/${link[1]}`, { query: { market: 'from_token' } }));
+      if (link) track = trackOf(await this.api('GET', `/tracks/${link[1]}`));
       else {
-        const found = await this.api('GET', '/search', { query: { q: query.slice(0, 100), type: 'track', limit: '5', market: 'from_token' } });
+        const found = await this.api('GET', '/search', { query: { q: query.slice(0, 100), type: 'track', limit: '5' } });
         const items = (found?.tracks?.items || []).map(trackOf);
         // Prefere a primeira que passa nos filtros.
         track = items.find((t) => !this.blockReason(t)) || items[0];

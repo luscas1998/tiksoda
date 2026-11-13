@@ -135,8 +135,11 @@ function render(m) {
     $('acc-name').textContent = m.account ? `Conectado como ${m.account.name}` : 'Conectado';
     $('acc-plan').textContent = m.account ? (m.account.premium ? 'Spotify Premium' : 'Conta sem Premium: pedir e pular não vão funcionar') : '';
   }
-  $('sp-error').hidden = !m.error;
-  $('sp-error').textContent = m.error ? `⚠ ${m.error}` : '';
+  const err = m.needsReconnect
+    ? 'O login precisa ser refeito pra liberar os pedidos: clique em Desconectar e depois em Conectar Spotify.'
+    : m.error;
+  $('sp-error').hidden = !err;
+  $('sp-error').textContent = err ? `⚠ ${err}` : '';
 
   const n = m.now;
   $('np-capa').style.backgroundImage = n?.image ? `url("${n.image}")` : '';

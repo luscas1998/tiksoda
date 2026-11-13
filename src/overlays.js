@@ -107,6 +107,15 @@ export const OVERLAYS = [
     themes: true,
   },
   {
+    slug: 'musica',
+    name: 'Tocando agora (Spotify)',
+    description: 'Capa, nome e artista da música do Spotify, com barra de tempo, quem pediu e o aviso de pedido novo. Conecte na aba Música.',
+    size: '560 x 160',
+    options: 'capa=0 · pedido=0 · barra=0 · avisos=0 · fila=3 (mostra os próximos pedidos) · pausada=0 (some quando pausa) · tamanho=120',
+    ready: true,
+    themes: true,
+  },
+  {
     slug: 'midia',
     name: 'Áudio e vídeo das ações',
     description: 'Toca os áudios e vídeos das suas ações (presentes e metas de likes). Configure na aba Ações.',

@@ -17,9 +17,10 @@ import { MonthlyRanking } from './monthly.js';
 import { importTikTokGifts } from './giftImport.js';
 import { TextToSpeech } from './tts.js';
 import { Wheels } from './wheels.js';
+import { Spotify } from './spotify.js';
 
 setupLog();
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 const OPEN_PANEL = PACKAGED || process.argv.includes('--abrir');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const PORT = Number(process.env.PORT) || 3330;
@@ -65,6 +66,7 @@ const goals = new GiftGoals(DATA_DIR, media);
 const monthly = new MonthlyRanking(DATA_DIR);
 const tts = new TextToSpeech(DATA_DIR);
 const wheels = new Wheels(DATA_DIR, media);
+const spotify = new Spotify(DATA_DIR, PORT);
 let config = loadConfig();
 live.autoRetry = publicConfig().autoRetry;
 
@@ -116,7 +118,7 @@ app.post('/api/sair', (_req, res) => {
 
 // ---------- backup das configurações ----------
 // Ações, metas, roletas, TTS, ranking mensal e o @. As mídias ficam em data/midia (copie a pasta).
-const BACKUP_FILES = ['config.json', 'acoes.json', 'metas.json', 'roletas.json', 'tts.json', 'mensal.json', 'gifts.json'];
+const BACKUP_FILES = ['config.json', 'acoes.json', 'metas.json', 'roletas.json', 'tts.json', 'mensal.json', 'gifts.json', 'spotify.json'];
 app.get('/api/backup', (_req, res) => {
   const files = {};
   for (const f of BACKUP_FILES) {
@@ -141,6 +143,8 @@ app.post('/api/backup', express.json({ limit: '50mb' }), (req, res) => {
   wheels.store.data = wheels.store.load();
   tts.store.data = { ...tts.store.load() };
   tts.update({});
+  spotify.store.data = { ...spotify.store.load() };
+  spotify.update({});
   gifts.store.data = gifts.store.load();
   monthly.store.data = monthly.store.load();
   monthly.changed = true;
@@ -299,6 +303,39 @@ app.post('/api/roletas/:id/girar', goalRoute((req) => {
   return spin;
 }));
 
+// ---------- Spotify (aba Música) ----------
+app.get('/api/spotify', (_req, res) => res.json({ config: spotify.config, redirectUri: spotify.redirectUri, history: spotify.history, ...spotify.publicState() }));
+app.put('/api/spotify', (req, res) => {
+  const { clientId, ...rest } = req.body || {};
+  try { res.json({ config: spotify.update(rest) }); } catch (err) { res.status(400).json({ error: err.message }); }
+});
+app.post('/api/spotify/client', (req, res) => res.json({ clientId: spotify.setClientId(req.body?.clientId) }));
+app.get('/api/spotify/login', (_req, res) => {
+  try { res.redirect(spotify.authUrl()); } catch (err) { res.status(400).send(err.message); }
+});
+app.get('/api/spotify/callback', async (req, res) => {
+  const back = `http://localhost:${PORT}/painel/musica.html`;
+  const page = (ok, msg) => res.send(`<!doctype html><meta charset="utf-8"><title>TikSoda · Spotify</title>
+<body style="font:16px system-ui;background:#0f0f17;color:#eee;display:grid;place-items:center;height:100vh;margin:0;text-align:center">
+<div><h2>${ok ? '✅ Spotify conectado!' : '❌ Não deu certo'}</h2><p>${msg}</p><p><a style="color:#ff4f8b" href="${back}">Voltar ao painel</a></p></div>
+${ok ? `<script>setTimeout(()=>location.href=${JSON.stringify(back)},1500)</script>` : ''}</body>`);
+  if (req.query.error) return page(false, req.query.error === 'access_denied' ? 'Você cancelou o login.' : String(req.query.error).replace(/[<>&"]/g, ''));
+  try { await spotify.callback(String(req.query.code || ''), String(req.query.state || '')); page(true, 'Voltando pro painel…'); }
+  catch (err) { page(false, String(err.message).replace(/[<>&"]/g, '')); }
+});
+app.post('/api/spotify/sair', (_req, res) => { spotify.logout(); res.json({ ok: true }); });
+app.post('/api/spotify/pedir', async (req, res) => {
+  const text = String(req.body?.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'Digite o nome de uma música.' });
+  if (!spotify.connected) return res.status(400).json({ error: 'Conecte o Spotify primeiro.' });
+  res.json(await spotify.request(text));
+});
+app.post('/api/spotify/limpar-pedidos', (_req, res) => { spotify.clearRequests(); res.json({ ok: true }); });
+app.post('/api/spotify/:acao(tocar|pausar|proxima|anterior)', async (req, res) => {
+  try { await spotify.control(req.params.acao); res.json({ ok: true }); } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// ---------- testes ----------
 app.post('/api/test/combo', (_req, res) => {
   simulateCombo(publish);
   res.json({ ok: true });
@@ -332,6 +369,7 @@ function publish(event) {
   goals.handle(event);
   tts.handle(event, coinsOf);
   wheels.handle(event, coinsOf);
+  spotify.handle(event, coinsOf);
   if (isMyLive() && !event.simulated) monthly.record(event);
   for (const play of actions.match(event, likesBefore, session.data.totals.likes)) {
     broadcast({ kind: 'play', play });
@@ -347,7 +385,7 @@ function publish(event) {
 wss.on('connection', (socket) => {
   socket.send(JSON.stringify({
     kind: 'hello', status: live.status, recent,
-    rankings: session.rankings(), monthly: monthly.rankings(), goals: goals.publicList(), wheels: wheels.list(),
+    rankings: session.rankings(), monthly: monthly.rankings(), goals: goals.publicList(), wheels: wheels.list(), music: spotify.publicState(),
   }));
 });
 
@@ -370,6 +408,9 @@ monthly.on('rankings', (rankings) => broadcast({ kind: 'monthly', rankings }));
 goals.on('change', () => broadcast({ kind: 'goals', goals: goals.publicList() }));
 tts.on('speak', (item) => broadcast({ kind: 'tts', item }));
 tts.on('log', (log) => broadcast({ kind: 'tts-log', log: { ...log, at: Date.now() } }));
+spotify.on('state', (music) => broadcast({ kind: 'music', music }));
+spotify.on('request', (request) => broadcast({ kind: 'music-request', request }));
+spotify.on('log', (log) => broadcast({ kind: 'music-log', log }));
 wheels.on('change', (list) => broadcast({ kind: 'wheels', wheels: list }));
 wheels.on('spin', (spin, option, w) => {
   broadcast({ kind: 'wheel-spin', spin });

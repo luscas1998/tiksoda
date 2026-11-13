@@ -32,3 +32,7 @@ export function previewOf(link) {
     return u.pathname + u.search;
   } catch { return link; }
 }
+
+// Endereço dos links dos overlays. O LIVE Studio recusa "localhost" e "127.0.0.1" no campo
+// de link; tiksoda.localtest.me é um nome público que aponta pro próprio PC (127.0.0.1).
+export const overlayBase = (port) => `http://tiksoda.localtest.me:${port}`;

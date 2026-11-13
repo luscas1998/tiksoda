@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Música</title>
+<link rel="stylesheet" href="panel.css">
+<link rel="stylesheet" href="acoes.css">
+<link rel="stylesheet" href="tts.css">
+<link rel="stylesheet" href="musica.css">
+</head>
+<body data-page="musica" data-title="Música" data-sub="Spotify: o chat pede e pula músicas">
+<script src="shell.js"></script>
+
+<main class="acoes musica">
+  <div class="col">
+  <!-- Conexão -->
+  <section class="card" id="conn-card">
+    <h2>Spotify</h2>
+    <div id="conn-on" hidden>
+      <div class="sp-account">
+        <span class="sp-dot"></span>
+        <div><b id="acc-name"></b><span id="acc-plan"></span></div>
+        <button class="secondary small" id="logout">Desconectar</button>
+      </div>
+      <p class="hint warn" id="sp-error" hidden></p>
+    </div>
+    <div id="conn-off">
+      <p class="hint" style="margin-top:0">Precisa fazer isso <b>uma vez só</b>. Depois o login fica salvo.</p>
+      <ol class="steps">
+        <li>Entre em <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> com a sua conta do Spotify e clique em <b>Create app</b>.</li>
+        <li>Nome: <code>TikSoda</code>. Descrição: qualquer uma. Em <b>Redirect URIs</b> cole este endereço e clique em <b>Add</b>:
+          <div class="row link-row"><input id="redirect" readonly><button class="secondary small" data-copy>Copiar</button></div></li>
+        <li>Em "Which API/SDKs are you planning to use?" marque <b>Web API</b>, aceite os termos e clique em <b>Save</b>.</li>
+        <li>Abra o app criado, vá em <b>Settings</b>, copie o <b>Client ID</b> e cole aqui:
+          <form class="row" id="f-client"><input id="client-id" placeholder="Client ID (32 letras e números)" spellcheck="false"><button class="small" type="submit">Salvar</button></form></li>
+        <li><a class="button" id="login" href="/api/spotify/login">Conectar Spotify</a> <span class="hint">e autorize com a sua conta.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Configuração -->
+  <section class="card">
+    <div class="feed-head">
+      <h2>Pedidos pelo chat</h2>
+      <label class="check big"><span class="switch"><input type="checkbox" id="enabled"><span></span></span> Ligado</label>
+    </div>
+    <form id="form" class="form">
+      <label>Comando pra pedir<input id="command" placeholder="!musica" maxlength="30"></label>
+      <p class="hint" id="command-hint"></p>
+
+      <div class="field">
+        <span class="label">Quando tocar o pedido</span>
+        <div class="seg">
+          <label><input type="radio" name="play-mode" value="agora"> Na hora (corta a música da playlist)</label>
+          <label><input type="radio" name="play-mode" value="fila"> Depois da música atual</label>
+        </div>
+        <p class="hint">Um pedido nunca corta outro pedido: se já tem pedido tocando ou esperando, o novo entra na fila logo depois. Quando os pedidos acabam, a sua playlist continua.</p>
+      </div>
+
+      <div class="field">
+        <span class="label">Quem pode pedir</span>
+        <div class="seg who" data-who="who"></div>
+        <label class="mincoins" data-for="who">Mínimo de coins já enviados nesta live<input type="number" min="1" id="min-coins"></label>
+        <p class="hint">Marque um ou mais. A pessoa precisa ser de pelo menos um dos grupos. <b>Fã-clube</b> é quem entrou no seu fã-clube mandando o <b>Heart Me</b>.</p>
+      </div>
+
+      <div class="grid3">
+        <label>Espera por pessoa (s)<input id="cooldown" type="number" min="0" max="3600"></label>
+        <label>Pedidos por pessoa na fila<input id="max-per-user" type="number" min="1" max="20"></label>
+        <label>Máx. de pedidos na fila<input id="max-queue" type="number" min="1" max="50"></label>
+        <label>Duração máxima (min)<input id="max-minutes" type="number" min="1" max="60"></label>
+      </div>
+
+      <div class="field">
+        <span class="label">Filtros</span>
+        <label class="check"><input type="checkbox" id="block-explicit"> Bloquear músicas marcadas como explícitas</label>
+        <label>Artistas ou palavras bloqueadas (separe por vírgula)<textarea id="blocked-words" rows="2" placeholder="ex.: nome de artista, palavra"></textarea></label>
+        <label>Usuários que não podem pedir nem pular (@, separe por vírgula)<textarea id="ignored-users" rows="2"></textarea></label>
+      </div>
+
+      <div class="field skip-box">
+        <div class="feed-head">
+          <span class="label">Pular música pelo chat</span>
+          <label class="check"><span class="switch"><input type="checkbox" id="skip-enabled"><span></span></span></label>
+        </div>
+        <div class="grid3">
+          <label>Comando<input id="skip-command" placeholder="!pular" maxlength="30"></label>
+          <label>Votos pra pular<input id="skip-votes" type="number" min="1" max="50"></label>
+        </div>
+        <p class="hint" id="skip-hint"></p>
+        <span class="label">Quem pode votar</span>
+        <div class="seg who" data-who="skipWho"></div>
+        <label class="check"><input type="checkbox" id="mods-skip"> Moderador pula na hora, sem votação</label>
+        <label class="check"><input type="checkbox" id="only-requested"> Só deixar pular músicas que o chat pediu (as suas ficam protegidas)</label>
+      </div>
+
+      <div class="row">
+        <button type="submit">Salvar</button>
+        <span id="form-msg" class="msg"></span>
+      </div>
+    </form>
+  </section>
+
+  </div>
+  <div class="col">
+  <!-- Tocando agora -->
+  <section class="card">
+    <h2>Tocando agora</h2>
+    <div class="np" id="np">
+      <div class="np-capa" id="np-capa"></div>
+      <div class="np-info">
+        <b id="np-nome">Nada tocando</b>
+        <span id="np-artista">Abra o Spotify no PC e dê play.</span>
+        <small id="np-pedido"></small>
+      </div>
+    </div>
+    <div class="row wrap np-ctrl">
+      <button class="secondary small" data-ctrl="anterior" title="Anterior">⏮</button>
+      <button class="secondary small" data-ctrl="pausar" id="btn-pausa" title="Pausar">⏸</button>
+      <button class="secondary small" data-ctrl="proxima" title="Próxima">⏭</button>
+      <span class="hint" id="np-votos"></span>
+    </div>
+    <form id="test" class="row" style="margin-top:12px">
+      <input id="test-text" placeholder="Pedir uma música (teste, sem filtros)…" maxlength="200">
+      <button type="submit">Pedir</button>
+    </form>
+    <div class="ov-mini">
+      <div class="row link-row"><input id="link" readonly><button class="secondary small" data-copy>Copiar</button></div>
+      <div class="theme-row">Tema <span id="theme-slot"></span></div>
+      <div class="preview np-preview"><iframe id="preview" tabindex="-1" title="Prévia"></iframe></div>
+    </div>
+  </section>
+
+  <!-- Fila e histórico -->
+  <section class="card">
+    <div class="feed-head">
+      <h2>Fila de pedidos</h2>
+      <button class="secondary small" id="clear">Limpar lista</button>
+    </div>
+    <ul id="queue" class="log"><li class="empty-msg">Nenhum pedido esperando.</li></ul>
+    <p class="hint">O Spotify não deixa outro app tirar música da fila dele. "Limpar lista" só esquece os pedidos aqui no TikSoda.</p>
+    <h2 style="margin-top:18px">Últimos pedidos e votos</h2>
+    <ul id="log" class="log"><li class="empty-msg">Nada ainda.</li></ul>
+  </section>
+  </div>
+</main>
+
+<script type="module" src="musica.js"></script>
+</body>
+</html>

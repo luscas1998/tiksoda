@@ -1,5 +1,5 @@
 import { escapeHtml, connectLive } from '/shared/live-client.js';
-import { themeSelect, withTheme, themeOf } from './temas.js';
+import { themeSelect, withTheme, themeOf, overlayBase } from './temas.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -11,7 +11,7 @@ const CATS = [
   { id: '', label: 'Todos' },
   { id: 'live', label: '📣 Alertas e chat', slugs: ['eventos', 'alertas', 'chat', 'tts', 'contadores'] },
   { id: 'rank', label: '🏆 Rankings', slugs: ['ranking-likes', 'ranking-coins', 'ranking-mensal-likes', 'ranking-mensal-coins'] },
-  { id: 'interativo', label: '🎡 Interativos', slugs: ['metas', 'roleta', 'midia'] },
+  { id: 'interativo', label: '🎡 Interativos', slugs: ['metas', 'roleta', 'midia', 'musica'] },
 ];
 
 function previewHtml(o) {
@@ -24,7 +24,7 @@ function previewHtml(o) {
 }
 
 function render(list, port) {
-  const base = `http://localhost:${port}`;
+  const base = overlayBase(port);
   $('overlays').innerHTML = list.map((o) => `
     <li class="${o.ready ? '' : 'soon'}" data-slug="${o.slug}">
       <div class="ov-info">

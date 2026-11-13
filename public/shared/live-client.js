@@ -1,6 +1,6 @@
 // Cliente usado pelo painel e pelos overlays para receber eventos ao vivo.
 // Reconecta sozinho se o app for fechado e aberto de novo.
-export function connectLive({ onHello, onEvent, onStatus, onRankings, onMonthly, onGoals, onGoalComplete, onPlay, onTts, onTtsControl, onTtsLog, onWheels, onWheelSpin, onSocket } = {}) {
+export function connectLive({ onHello, onEvent, onStatus, onRankings, onMonthly, onGoals, onGoalComplete, onPlay, onTts, onTtsControl, onTtsLog, onWheels, onWheelSpin, onMusic, onMusicRequest, onMusicLog, onSocket } = {}) {
   let retry = 500;
   // O painel (shell.js) escuta estes eventos pra mostrar o status no topo.
   const emit = (name, detail) => { try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch { /* overlay */ } };
@@ -25,6 +25,9 @@ export function connectLive({ onHello, onEvent, onStatus, onRankings, onMonthly,
       else if (data.kind === 'tts-log') onTtsLog?.(data.log);
       else if (data.kind === 'wheels') onWheels?.(data.wheels);
       else if (data.kind === 'wheel-spin') onWheelSpin?.(data.spin);
+      else if (data.kind === 'music') onMusic?.(data.music);
+      else if (data.kind === 'music-request') onMusicRequest?.(data.request);
+      else if (data.kind === 'music-log') onMusicLog?.(data.log);
     };
     ws.onclose = () => {
       onSocket?.(false);

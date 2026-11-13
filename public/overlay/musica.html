@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikSoda · Tocando agora</title>
+<link rel="stylesheet" href="/shared/temas.css">
+<script src="/shared/tema.js"></script>
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  body { font-family: var(--ov-font); color: var(--ov-text); padding: 12px; box-sizing: border-box; --s: 1; }
+  .wrap { display: grid; gap: calc(8px * var(--s)); justify-items: start; }
+  .card {
+    position: relative; display: flex; align-items: center; gap: calc(14px * var(--s)); width: calc(520px * var(--s)); max-width: 100%;
+    background: var(--ov-bg); border: var(--ov-border-w) solid var(--ov-border); border-radius: var(--ov-radius);
+    box-shadow: var(--ov-shadow); padding: calc(10px * var(--s)); box-sizing: border-box; overflow: hidden;
+    transition: opacity .4s, transform .4s;
+  }
+  .card.off { opacity: 0; transform: translateY(14px); }
+  .card.paused .capa { filter: grayscale(.7) brightness(.7); }
+  .card.troca .info { animation: troca .5s ease-out; }
+  .capa {
+    width: calc(96px * var(--s)); height: calc(96px * var(--s)); border-radius: calc(var(--ov-radius) * .6); flex: none;
+    background: #333 center/cover; box-shadow: 0 4px 14px rgba(0,0,0,.4); position: relative; transition: filter .3s;
+  }
+  .sem-capa .capa { display: none; }
+  .capa .pausa { position: absolute; inset: 0; display: none; place-items: center; font-size: calc(34px * var(--s)); text-shadow: 0 2px 6px #000; }
+  .card.paused .capa .pausa { display: grid; }
+  .info { min-width: 0; flex: 1; display: grid; gap: calc(3px * var(--s)); text-shadow: var(--ov-text-shadow); }
+  .topo { display: flex; align-items: center; gap: 8px; font-size: calc(12px * var(--s)); font-weight: 700; color: var(--ov-accent-2); text-transform: uppercase; letter-spacing: .08em; }
+  .eq { display: inline-flex; gap: 2px; align-items: flex-end; height: calc(12px * var(--s)); }
+  .eq i { width: calc(3px * var(--s)); background: var(--ov-accent-2); border-radius: 2px; animation: eq .9s ease-in-out infinite alternate; }
+  .eq i:nth-child(2) { animation-delay: -.3s; } .eq i:nth-child(3) { animation-delay: -.6s; }
+  .card.paused .eq i { animation-play-state: paused; }
+  .nome { font-size: calc(22px * var(--s)); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nome.rola { text-overflow: clip; }
+  .nome.rola span { display: inline-block; padding-right: 3em; animation: rola var(--rola, 10s) linear infinite; }
+  .artista { font-size: calc(16px * var(--s)); color: var(--ov-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pedido { display: flex; align-items: center; gap: 6px; font-size: calc(13px * var(--s)); color: var(--ov-gold); font-weight: 700; min-height: 1em; }
+  .pedido .av { width: calc(18px * var(--s)); height: calc(18px * var(--s)); border-radius: 50%; background: #555 center/cover; flex: none; }
+  .sem-pedido .pedido { display: none; }
+  .barra { display: flex; align-items: center; gap: 8px; font-size: calc(12px * var(--s)); color: var(--ov-muted); font-variant-numeric: tabular-nums; }
+  .barra .trilho { flex: 1; height: calc(5px * var(--s)); border-radius: 99px; background: var(--ov-track); overflow: hidden; }
+  .barra .cheio { height: 100%; width: 0; background: linear-gradient(90deg, var(--ov-accent), var(--ov-accent-2)); border-radius: 99px; }
+  .sem-barra .barra { display: none; }
+  .votos { position: absolute; top: 8px; right: 10px; font-size: calc(12px * var(--s)); font-weight: 800; background: var(--ov-accent); color: #fff; padding: 2px 8px; border-radius: 99px; display: none; }
+  .votos.on { display: block; animation: pulsa .6s ease-out; }
+  .aviso {
+    display: flex; align-items: center; gap: 10px; width: calc(520px * var(--s)); max-width: 100%; box-sizing: border-box;
+    background: var(--ov-bg-strong); border: var(--ov-border-w) solid var(--ov-border); border-radius: var(--ov-radius); box-shadow: var(--ov-shadow);
+    padding: calc(8px * var(--s)) calc(12px * var(--s)); font-size: calc(15px * var(--s)); text-shadow: var(--ov-text-shadow);
+    animation: entra .35s ease-out both;
+  }
+  .aviso.sai { animation: sai .35s ease-in both; }
+  .aviso .mini { width: calc(36px * var(--s)); height: calc(36px * var(--s)); border-radius: 6px; background: #333 center/cover; flex: none; }
+  .aviso b { color: var(--ov-accent); }
+  .aviso .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fila { width: calc(520px * var(--s)); max-width: 100%; display: grid; gap: 4px; }
+  .fila div { background: var(--ov-bg); border-radius: calc(var(--ov-radius) * .6); padding: calc(5px * var(--s)) calc(10px * var(--s)); font-size: calc(14px * var(--s)); text-shadow: var(--ov-text-shadow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fila small { color: var(--ov-gold); font-weight: 700; }
+  .fila .n { color: var(--ov-accent-2); font-weight: 800; margin-right: 6px; }
+  @keyframes eq { from { height: 25%; } to { height: 100%; } }
+  @keyframes rola { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+  @keyframes troca { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+  @keyframes pulsa { from { transform: scale(1.4); } to { transform: scale(1); } }
+  @keyframes entra { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes sai { to { opacity: 0; transform: translateY(-6px); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card off" id="card">
+    <div class="capa" id="capa"><span class="pausa">⏸</span></div>
+    <div class="info" id="info">
+      <div class="topo"><span class="eq"><i></i><i></i><i></i></span><span id="estado">Tocando agora</span></div>
+      <div class="nome" id="nome"></div>
+      <div class="artista" id="artista"></div>
+      <div class="pedido" id="pedido"></div>
+      <div class="barra"><span id="t-atual">0:00</span><div class="trilho"><div class="cheio" id="cheio"></div></div><span id="t-total">0:00</span></div>
+    </div>
+    <span class="votos" id="votos"></span>
+  </div>
+  <div class="fila" id="fila"></div>
+  <div id="avisos"></div>
+</div>
+<script type="module">
+  import { connectLive, escapeHtml } from '/shared/live-client.js';
+
+  // Mostra a música do Spotify. Conecte o Spotify na aba Música do painel.
+  // Opções: ?capa=0 · ?pedido=0 (sem "pedido por") · ?barra=0 · ?avisos=0 (sem aviso de pedido novo)
+  //         ?fila=3 (mostra os próximos 3 pedidos) · ?pausada=0 (some quando pausa) · ?tamanho=120 (%) · ?tema=neon
+  const params = new URLSearchParams(location.search);
+  const PREVIA = params.get('previa') === '1';
+  const AVISOS = params.get('avisos') !== '0';
+  const FILA = Math.min(10, Math.max(0, Number(params.get('fila')) || 0));
+  const PAUSADA = params.get('pausada') !== '0';
+  const tam = Math.min(300, Math.max(40, Number(params.get('tamanho')) || 100));
+  document.body.style.setProperty('--s', tam / 100);
+  if (params.get('capa') === '0') document.body.classList.add('sem-capa');
+  if (params.get('pedido') === '0') document.body.classList.add('sem-pedido');
+  if (params.get('barra') === '0') document.body.classList.add('sem-barra');
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const DEMO = {
+    id: 'demo', name: 'Nome da música', artists: 'Artista', image: '', durationMs: 200000, isPlaying: true, progressMs: 64000, at: Date.now(),
+    requestedBy: { nickname: 'Maria 🌸', avatar: '' },
+  };
+
+  let now = null;
+
+  function render(music) {
+    let n = music?.now || null;
+    if (!n && PREVIA) n = { ...DEMO, at: Date.now() };
+    const card = $('card');
+    const trocou = n && now?.id !== n.id;
+    now = n;
+    const show = n && (n.isPlaying || PAUSADA);
+    card.classList.toggle('off', !show);
+    if (!n) return;
+    card.classList.toggle('paused', !n.isPlaying);
+    $('estado').textContent = n.isPlaying ? 'Tocando agora' : 'Pausado';
+    if (trocou) {
+      $('capa').style.backgroundImage = n.image ? `url("${n.image.replace(/"/g, '')}")` : '';
+      $('nome').innerHTML = `<span>${escapeHtml(n.name)}</span>`;
+      $('artista').textContent = n.artists;
+      $('t-total').textContent = fmt(n.durationMs);
+      const r = n.requestedBy;
+      $('pedido').innerHTML = r ? `${r.avatar ? `<span class="av" style="background-image:url('${escapeHtml(r.avatar)}')"></span>` : '🎵'} pedido por ${escapeHtml(r.nickname || r.username)}` : '';
+      card.classList.remove('troca'); void card.offsetWidth; card.classList.add('troca');
+      requestAnimationFrame(() => {
+        const el = $('nome');
+        const over = el.scrollWidth > el.clientWidth + 2;
+        el.classList.toggle('rola', over);
+        if (over) el.style.setProperty('--rola', `${Math.max(8, el.scrollWidth / 40)}s`);
+      });
+    }
+    const v = music?.votes;
+    $('votos').classList.toggle('on', !!(v && v.count > 0 && v.needed > 1));
+    if (v && v.count > 0) $('votos').textContent = `⏭ ${v.count}/${v.needed}`;
+    if (FILA) {
+      const list = (music?.pending || []).slice(0, FILA);
+      $('fila').innerHTML = list.map((p, i) => `<div><span class="n">${i + 1}</span>${escapeHtml(p.name)} · ${escapeHtml(p.artists)}${p.user ? ` <small>@${escapeHtml(p.user.nickname || p.user.username)}</small>` : ''}</div>`).join('');
+    }
+  }
+
+  // A barra anda sozinha entre as atualizações (o app só pergunta ao Spotify a cada poucos segundos).
+  function tick() {
+    if (now) {
+      const ms = Math.min(now.durationMs, now.progressMs + (now.isPlaying ? Date.now() - now.at : 0));
+      $('t-atual').textContent = fmt(ms);
+      $('cheio').style.width = `${now.durationMs ? (ms / now.durationMs) * 100 : 0}%`;
+    }
+    setTimeout(tick, 500);
+  }
+  tick();
+
+  function aviso(req) {
+    if (!AVISOS || !req.user) return;
+    const el = document.createElement('div');
+    el.className = 'aviso';
+    el.innerHTML = `<span class="mini" style="${req.image ? `background-image:url('${escapeHtml(req.image)}')` : ''}"></span><span class="t"><b>${escapeHtml(req.user.nickname || req.user.username)}</b> pediu ${escapeHtml(req.name)} · ${escapeHtml(req.artists)}</span>`;
+    $('avisos').appendChild(el);
+    setTimeout(() => { el.classList.add('sai'); setTimeout(() => el.remove(), 400); }, 5000);
+  }
+
+  render(null);
+  connectLive({
+    onHello: ({ music }) => render(music),
+    onMusic: render,
+    onMusicRequest: aviso,
+  });
+</script>
+</body>
+</html>

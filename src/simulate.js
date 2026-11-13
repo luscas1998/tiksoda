@@ -1,11 +1,12 @@
 // Eventos falsos para testar o painel e os overlays sem estar ao vivo.
 
+// Cada pessoa de teste tem um "tipo" diferente, pra testar os filtros de quem pode.
 const USERS = [
-  { id: 'u1', username: 'maria.souza', nickname: 'Maria 🌸' },
-  { id: 'u2', username: 'joaogamer', nickname: 'João Gamer' },
-  { id: 'u3', username: 'ana_beatriz', nickname: 'Ana B.' },
-  { id: 'u4', username: 'pedrinho77', nickname: 'Pedrinho' },
-  { id: 'u5', username: 'carla.live', nickname: 'Carla ✨' },
+  { id: 'u1', username: 'maria.souza', nickname: 'Maria 🌸', roles: { seguidor: true, amigo: false, fa: true, faNivel: 3, assinante: false, moderador: false } },
+  { id: 'u2', username: 'joaogamer', nickname: 'João Gamer', roles: { seguidor: true, amigo: false, fa: false, faNivel: 0, assinante: false, moderador: false } },
+  { id: 'u3', username: 'ana_beatriz', nickname: 'Ana B.', roles: { seguidor: false, amigo: false, fa: false, faNivel: 0, assinante: false, moderador: false } },
+  { id: 'u4', username: 'pedrinho77', nickname: 'Pedrinho', roles: { seguidor: true, amigo: true, fa: false, faNivel: 0, assinante: false, moderador: true } },
+  { id: 'u5', username: 'carla.live', nickname: 'Carla ✨', roles: { seguidor: true, amigo: false, fa: true, faNivel: 12, assinante: true, moderador: false } },
 ];
 
 const GIFTS = [
@@ -20,7 +21,7 @@ const COMMENTS = ['Boa noite!! 👋', 'Manda salve pra mim', 'kkkkkk', 'Que live
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 let seq = 0;
-const base = (type) => ({ id: `sim-${Date.now()}-${++seq}`, type, at: Date.now(), simulated: true, user: { ...pick(USERS), avatar: '' } });
+const base = (type) => ({ id: `sim-${Date.now()}-${++seq}`, type, at: Date.now(), simulated: true, user: structuredClone({ ...pick(USERS), avatar: '' }) });
 
 export function simulate(type, opts = {}) {
   switch (type) {

@@ -62,6 +62,7 @@ function fill(c) {
   $('max-per-user').value = c.maxPerUser;
   $('max-queue').value = c.maxQueue;
   $('max-minutes').value = c.maxMinutes;
+  document.querySelector(`input[name="play-mode"][value="${c.playMode}"]`).checked = true;
   $('block-explicit').checked = c.blockExplicit;
   $('blocked-words').value = c.blockedWords;
   $('ignored-users').value = c.ignoredUsers;
@@ -85,6 +86,7 @@ function collect() {
     maxPerUser: Number($('max-per-user').value),
     maxQueue: Number($('max-queue').value),
     maxMinutes: Number($('max-minutes').value),
+    playMode: document.querySelector('input[name="play-mode"]:checked')?.value,
     blockExplicit: $('block-explicit').checked,
     blockedWords: $('blocked-words').value,
     ignoredUsers: $('ignored-users').value,

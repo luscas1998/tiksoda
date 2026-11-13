@@ -29,6 +29,7 @@ const DEFAULTS = {
   maxPerUser: 2,           // pedidos da mesma pessoa esperando na fila
   maxQueue: 10,            // pedidos esperando no total
   maxMinutes: 8,           // música mais longa que isso não entra
+  playMode: 'agora',       // 'agora': pedido corta a música da playlist e toca na hora · 'fila': espera a atual acabar
   blockExplicit: false,
   blockedWords: '',
   ignoredUsers: '',
@@ -118,6 +119,7 @@ export class Spotify extends EventEmitter {
       skipVotes: clamp(c.skipVotes, 1, 50, 3),
       modsSkip: c.modsSkip !== false,
       onlyRequestedSkip: !!c.onlyRequestedSkip,
+      playMode: c.playMode === 'fila' ? 'fila' : 'agora',
     };
     this.store.save();
     this.emitState();
@@ -393,8 +395,17 @@ export class Spotify extends EventEmitter {
     if (this.now?.id === track.id) return fail('já está tocando', track);
     if (this.pending.some((p) => p.id === track.id)) return fail('já está na fila', track);
 
-    try { await this.api('POST', '/me/player/queue', { query: { uri: track.uri } }); }
-    catch (err) { return fail(err.message, track); }
+    // Modo "tocar na hora": se agora toca música da sua playlist (não um pedido) e não tem
+    // outro pedido esperando, põe na fila e pula pra ela. Pedido nunca corta outro pedido.
+    const playNow = c.playMode === 'agora' && !this.now?.requestedBy && this.pending.length === 0;
+    try {
+      await this.api('POST', '/me/player/queue', { query: { uri: track.uri } });
+      if (playNow) {
+        await new Promise((r) => setTimeout(r, 400));
+        await this.api('POST', '/me/player/next');
+        setTimeout(() => this.poll().catch(() => {}), 800);
+      }
+    } catch (err) { return fail(err.message, track); }
 
     if (user) {
       this.lastByUser.set(user.id || plain(user.username), Date.now());

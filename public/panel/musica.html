@@ -50,6 +50,15 @@
       <p class="hint" id="command-hint"></p>
 
       <div class="field">
+        <span class="label">Quando tocar o pedido</span>
+        <div class="seg">
+          <label><input type="radio" name="play-mode" value="agora"> Na hora (corta a música da playlist)</label>
+          <label><input type="radio" name="play-mode" value="fila"> Depois da música atual</label>
+        </div>
+        <p class="hint">Um pedido nunca corta outro pedido: se já tem pedido tocando ou esperando, o novo entra na fila logo depois. Quando os pedidos acabam, a sua playlist continua.</p>
+      </div>
+
+      <div class="field">
         <span class="label">Quem pode pedir</span>
         <div class="seg who" data-who="who"></div>
         <label class="mincoins" data-for="who">Mínimo de coins já enviados nesta live<input type="number" min="1" id="min-coins"></label>

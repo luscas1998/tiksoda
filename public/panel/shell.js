@@ -18,6 +18,7 @@
     download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>',
     upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>',
     plug: '<path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0V8z"/><path d="M12 18v4"/>',
+    music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
     gauge: '<path d="M12 14l4-4"/><path d="M3.3 19a10 10 0 1 1 17.4 0"/>',
   };
   const icon = (name) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -31,6 +32,7 @@
     { id: 'metas', href: '/painel/metas.html', icon: 'target', label: 'Metas' },
     { id: 'roleta', href: '/painel/roleta.html', icon: 'wheel', label: 'Roleta' },
     { id: 'tts', href: '/painel/tts.html', icon: 'voice', label: 'TTS' },
+    { id: 'musica', href: '/painel/musica.html', icon: 'music', label: 'Música' },
     { sep: true },
     { id: 'config', href: '/painel/config.html', icon: 'gear', label: 'Configurações' },
   ];
@@ -42,7 +44,7 @@
   const aside = document.createElement('aside');
   aside.className = 'sidebar';
   aside.innerHTML = `
-    <a class="brand" href="/painel/"><span class="logo">${icon('soda')}</span><span><b>TikSoda</b><small id="app-version">v0.6</small></span></a>
+    <a class="brand" href="/painel/"><span class="logo">${icon('soda')}</span><span><b>TikSoda</b><small id="app-version">v0.7</small></span></a>
     <nav class="nav">${PAGES.map((p) => p.sep ? '<div class="sep"></div>'
       : `<a href="${p.href}" class="${p.id === page ? 'active' : ''}" title="${p.label}">${icon(p.icon)}<span>${p.label}</span></a>`).join('')}</nav>
     <div class="side-foot">

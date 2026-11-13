@@ -9,14 +9,36 @@ const toNumber = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// Selos do TikTok (tipo do selo): 1 moderador, 3 amigos, 4/7 assinante, 10 fã-clube (quem mandou Heart Me).
+const BADGE_MOD = 1;
+const BADGE_SUB = [4, 7];
+const BADGE_FAN = 10;
+
+// O que a pessoa é na live: seguidor, amigo, fã-clube (Heart Me), assinante, moderador.
+export function userRoles(u) {
+  if (!u) return {};
+  const scenes = (u.badgeList || u.badges || []).map((b) => Number(b?.sceneType ?? b?.badgeScene ?? b?.badgeSceneType ?? 0));
+  const follow = Number(u.followInfo?.followStatus ?? u.followRole ?? 0);
+  const fanLevel = Number(u.fansClub?.data?.level || 0) || (scenes.includes(BADGE_FAN) ? 1 : 0) || Number(u.teamMemberLevel || 0);
+  return {
+    seguidor: follow >= 1,
+    amigo: follow >= 2 || scenes.includes(3),
+    fa: fanLevel > 0,
+    faNivel: fanLevel,
+    assinante: scenes.some((s) => BADGE_SUB.includes(s)) || !!u.isSubscriber,
+    moderador: scenes.includes(BADGE_MOD) || !!u.userAttr?.isAdmin || !!u.userAttr?.isSuperAdmin || !!u.isModerator,
+  };
+}
+
 export function normalizeUser(u) {
-  if (!u) return { id: '', username: 'anonimo', nickname: 'Anônimo', avatar: '' };
+  if (!u) return { id: '', username: 'anonimo', nickname: 'Anônimo', avatar: '', roles: {} };
   const username = u.displayId || u.uniqueId || u.username || '';
   return {
     id: String(u.id ?? u.userId ?? username),
     username,
     nickname: u.nickname || username || 'Anônimo',
     avatar: firstUrl(u.avatarThumb) || firstUrl(u.avatarMedium) || u.profilePictureUrl || '',
+    roles: userRoles(u),
   };
 }
 

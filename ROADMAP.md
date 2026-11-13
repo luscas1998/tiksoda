@@ -19,6 +19,7 @@
 - [x] Overlay de contadores e último seguidor
 - [x] Backup e restauração
 - [x] App do Windows (TikSoda.exe) com ícone, atalhos e abrir com o Windows
+- [x] Spotify: pedidos pelo chat com filtros (seguidor, fã-clube/Heart Me…), !pular por votação, overlay tocando agora
 
 ## Próximos
 

@@ -51,6 +51,7 @@ Cada overlay tem o seu próprio link, mostrado no painel com botão de copiar.
 | Roleta | `/overlay/roleta/<id>` (um link por roleta) | pronto |
 | TTS (comentários em voz alta) | `/overlay/tts` | pronto |
 | Contadores (likes, seguidores, shares, coins, espectadores, presentes) | `/overlay/contadores` | pronto |
+| Tocando agora (Spotify) | `/overlay/musica` | pronto |
 
 ### Temas
 
@@ -136,6 +137,18 @@ Lê comentários em voz alta no overlay `/overlay/tts`, com um balão mostrando 
 - Voz do Windows (recomendado: o app gera o áudio e funciona em qualquer programa de live) ou voz do navegador. Escolha a voz, a velocidade e o volume, e teste na própria aba. Botões de pular e limpar a fila.
 - Pra ter voz em português no Windows: Configurações → Hora e idioma → Fala → Adicionar vozes.
 
+## Música / Spotify (aba Música do painel)
+
+O chat pede música no seu Spotify e o overlay `/overlay/musica` mostra o que está tocando (capa, nome, artista, tempo e quem pediu).
+
+- **Conectar (uma vez só):** crie um app gratuito em [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) com o Redirect URI `http://127.0.0.1:3330/api/spotify/callback` e a Web API marcada, cole o Client ID na aba Música e clique em **Conectar Spotify**. O login fica salvo.
+- **Pedir:** `!musica nome da música` (ou link do Spotify) põe na fila, sem cortar a que está tocando. Precisa de **Spotify Premium** e do Spotify aberto no PC.
+- **Quem pode pedir:** todo mundo, ou só seguidores, amigos, fã-clube (quem mandou **Heart Me**), assinantes, moderadores ou quem mandou presente na live (pode marcar mais de um).
+- Espera por pessoa, pedidos por pessoa, tamanho da fila, duração máxima, bloquear explícitas, artistas/palavras e usuários bloqueados.
+- **Pular:** `!pular` por votação (ex.: 3 votos; 1 = pula na hora), com filtro de quem vota, moderador pulando direto e opção de só deixar pular música pedida pelo chat.
+- Controles de tocar/pausar/anterior/próxima e pedido de teste no painel.
+- Opções do overlay: `?capa=0`, `?pedido=0`, `?barra=0`, `?avisos=0` (sem o aviso "Fulano pediu…"), `?fila=3` (mostra os próximos pedidos), `?pausada=0` (some quando pausa), `?tamanho=120`.
+
 ## Ranking mensal
 
 Ranking de likes e de coins do mês, nos links `/overlay/ranking-mensal-likes` e `/overlay/ranking-mensal-coins` (padrão top 10).
@@ -191,6 +204,7 @@ npm run build:exe  # gera dist/TikSoda.exe (Windows 64 bits, sem precisar de Nod
 - `src/monthly.js` ranking mensal
 - `src/tts.js` leitura de comentários (voz do Windows)
 - `src/wheels.js` roletas
+- `src/spotify.js` Spotify (pedidos, pular, tocando agora)
 - `public/shared/temas.css` temas dos overlays
 - `public/panel/` painel
 - `public/overlay/` um arquivo HTML por overlay

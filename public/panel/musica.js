@@ -1,5 +1,5 @@
 import { connectLive, escapeHtml } from '/shared/live-client.js';
-import { themeSelect, withTheme, previewOf } from './temas.js';
+import { themeSelect, withTheme, previewOf, overlayBase } from './temas.js';
 
 const $ = (id) => document.getElementById(id);
 const api = async (url, opts = {}) => {
@@ -208,7 +208,7 @@ function addLog(l) {
 
 // ---------- carregar ----------
 const info = await api('/api/status');
-base = `http://localhost:${info.port}/overlay/musica`;
+base = `${overlayBase(info.port)}/overlay/musica`;
 setLink('');
 const data = await api('/api/spotify');
 $('redirect').value = data.redirectUri;

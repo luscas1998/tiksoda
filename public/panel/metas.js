@@ -1,6 +1,6 @@
 import { connectLive, escapeHtml, formatNumber } from '/shared/live-client.js';
 import { createGiftPicker, setupGiftRefresh } from './gift-picker.js';
-import { themeSelect, withTheme, previewOf } from './temas.js';
+import { themeSelect, withTheme, previewOf, overlayBase } from './temas.js';
 
 const $ = (id) => document.getElementById(id);
 const api = async (url, opts = {}) => {
@@ -127,7 +127,7 @@ $('form').addEventListener('submit', async (e) => {
 });
 
 // ---------- lista ----------
-function linkFor(g) { return withTheme(`http://localhost:${port}/overlay/meta/${g.id}`, themes[g.id] || ''); }
+function linkFor(g) { return withTheme(`${overlayBase(port)}/overlay/meta/${g.id}`, themes[g.id] || ''); }
 const goalTitle = (g) => g.name || (g.kind === 'gift' || !g.kind ? `Meta de ${g.giftName}` : `Meta de ${KIND_INFO[g.kind].name.toLowerCase()}`);
 
 function previewBox(g) {

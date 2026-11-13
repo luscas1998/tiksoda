@@ -34,8 +34,10 @@ Pra gastar pouco PC: as prévias só carregam quando aparecem na tela, e dá pra
 Cada overlay tem o seu próprio link, mostrado no painel com botão de copiar.
 
 1. No LIVE Studio, clique em **Adicionar fonte → Link**.
-2. Cole o link do overlay, por exemplo `http://localhost:3330/overlay/eventos`.
+2. Cole o link do overlay, por exemplo `http://tiksoda.localtest.me:3330/overlay/eventos`.
 3. Ajuste o tamanho e a posição na cena.
+
+O LIVE Studio não aceita `localhost` nem `127.0.0.1` no campo de link, por isso os links usam `tiksoda.localtest.me`: é um endereço público que aponta pro seu próprio PC (precisa de internet pra funcionar, o que você já tem na live). No OBS qualquer um dos dois funciona.
 
 | Overlay | Link | Status |
 |---|---|---|
@@ -65,7 +67,7 @@ Dá pra ajustar pelo link:
 - `?tempo=15` cada item some depois de 15 segundos (padrão: não some)
 - `?tipos=gift,follow` quais eventos mostrar (`chat`, `gift`, `follow`, `share`)
 
-Exemplo: `http://localhost:3330/overlay/eventos?max=5&tempo=20&tipos=gift,follow,share`
+Exemplo: `http://tiksoda.localtest.me:3330/overlay/eventos?max=5&tempo=20&tipos=gift,follow,share`
 
 ### Opções dos alertas
 

@@ -1,6 +1,6 @@
 import { connectLive, escapeHtml } from '/shared/live-client.js';
 import { createGiftPicker, setupGiftRefresh } from './gift-picker.js';
-import { themeSelect, withTheme, previewOf } from './temas.js';
+import { themeSelect, withTheme, previewOf, overlayBase } from './temas.js';
 
 const $ = (id) => document.getElementById(id);
 const api = async (url, opts = {}) => {
@@ -93,7 +93,7 @@ $('form').addEventListener('submit', async (e) => {
 });
 
 // ---------- lista ----------
-const linkFor = (w) => withTheme(`http://localhost:${port}/overlay/roleta/${w.id}`, themes[w.id] || '');
+const linkFor = (w) => withTheme(`${overlayBase(port)}/overlay/roleta/${w.id}`, themes[w.id] || '');
 function triggers(w) {
   const t = [];
   if (w.command) t.push(`comando ${w.command}${w.commandWho === 'presente' ? ' (só quem mandou presente)' : ''}`);
